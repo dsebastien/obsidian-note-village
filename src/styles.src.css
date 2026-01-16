@@ -8,3 +8,199 @@
 .support-header-margin {
     @apply mb-5;
 }
+
+/* ========================================
+   NOTE VILLAGE GAME VIEW
+   ======================================== */
+
+.note-village-container {
+    @apply relative w-full h-full;
+}
+
+.note-village-canvas {
+    @apply w-full h-full block;
+}
+
+/* ========================================
+   CHAT PANEL
+   ======================================== */
+
+.note-village-chat-panel {
+    @apply absolute flex flex-col;
+    right: 16px;
+    top: 16px;
+    width: 320px;
+    max-height: 60%;
+    border-radius: var(--radius-s);
+    background-color: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 100;
+}
+
+.note-village-chat-header {
+    @apply flex items-center justify-between px-4 py-3;
+    border-bottom: 1px solid var(--background-modifier-border);
+    background-color: var(--background-secondary);
+    border-radius: var(--radius-s) var(--radius-s) 0 0;
+}
+
+.note-village-chat-title {
+    @apply font-medium truncate;
+    color: var(--text-normal);
+    font-size: 0.95em;
+}
+
+.note-village-chat-close {
+    @apply flex items-center justify-center p-1 cursor-pointer;
+    @apply transition-all duration-150;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-s);
+    color: var(--text-muted);
+}
+
+.note-village-chat-close:hover {
+    background-color: var(--background-modifier-hover);
+    color: var(--text-normal);
+}
+
+.note-village-chat-messages {
+    @apply flex-1 overflow-y-auto px-4 py-3;
+    min-height: 150px;
+    max-height: 300px;
+}
+
+.note-village-chat-empty {
+    @apply text-center py-8;
+    color: var(--text-muted);
+    font-size: 0.9em;
+    font-style: italic;
+}
+
+.note-village-chat-message {
+    @apply mb-3;
+}
+
+.note-village-chat-message-user {
+    @apply text-right;
+}
+
+.note-village-chat-message-user .note-village-chat-message-content {
+    @apply inline-block px-3 py-2 rounded-lg;
+    background-color: var(--interactive-accent);
+    color: var(--text-on-accent);
+    max-width: 85%;
+    text-align: left;
+}
+
+.note-village-chat-message-assistant .note-village-chat-message-content {
+    @apply inline-block px-3 py-2 rounded-lg;
+    background-color: var(--background-secondary);
+    color: var(--text-normal);
+    max-width: 85%;
+}
+
+.note-village-chat-message-time {
+    @apply mt-1;
+    font-size: 0.7em;
+    color: var(--text-muted);
+}
+
+.note-village-chat-input-container {
+    @apply flex gap-2 p-3;
+    border-top: 1px solid var(--background-modifier-border);
+}
+
+.note-village-chat-input {
+    @apply flex-1 px-3 py-2 resize-none;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-s);
+    background-color: var(--background-primary);
+    color: var(--text-normal);
+    font-size: 0.9em;
+    min-height: 36px;
+    max-height: 100px;
+}
+
+.note-village-chat-input:focus {
+    outline: none;
+    border-color: var(--interactive-accent);
+}
+
+.note-village-chat-send {
+    @apply flex items-center justify-center px-3 cursor-pointer;
+    @apply transition-all duration-150;
+    background-color: var(--interactive-accent);
+    color: var(--text-on-accent);
+    border: none;
+    border-radius: var(--radius-s);
+}
+
+.note-village-chat-send:hover:not(:disabled) {
+    @apply opacity-90;
+}
+
+.note-village-chat-send:disabled {
+    @apply opacity-50 cursor-not-allowed;
+}
+
+.note-village-chat-send.loading {
+    @apply animate-pulse;
+}
+
+/* ========================================
+   SPEECH BUBBLE
+   ======================================== */
+
+.note-village-speech-bubble {
+    @apply absolute px-3 py-2;
+    background-color: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-s);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    max-width: 200px;
+    transform: translateX(-50%);
+    z-index: 90;
+    pointer-events: none;
+}
+
+.note-village-speech-bubble-text {
+    font-size: 0.85em;
+    color: var(--text-normal);
+    word-wrap: break-word;
+}
+
+.note-village-speech-bubble-arrow {
+    @apply absolute;
+    left: 50%;
+    bottom: -8px;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 8px solid var(--background-primary);
+}
+
+/* ========================================
+   LOADING INDICATOR
+   ======================================== */
+
+.note-village-loading {
+    @apply absolute inset-0 flex items-center justify-center;
+    background-color: var(--background-primary);
+    z-index: 50;
+}
+
+.note-village-loading-spinner {
+    @apply w-8 h-8 animate-spin;
+    border: 3px solid var(--background-modifier-border);
+    border-top-color: var(--interactive-accent);
+    border-radius: 50%;
+}
+
+.note-village-loading-text {
+    @apply ml-3;
+    color: var(--text-muted);
+}

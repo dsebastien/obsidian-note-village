@@ -1,70 +1,137 @@
 import { Plugin } from 'obsidian'
-import { DEFAULT_SETTINGS } from './types/plugin-settings.intf'
-import type { PluginSettings } from './types/plugin-settings.intf'
-import { MyPluginSettingTab } from './settings/settings-tab'
+import { PluginSettingsSchema } from '#schemas/plugin-settings.schema'
+import type { PluginSettings } from '#types/plugin-settings.intf'
+import { DEFAULT_SETTINGS } from '#types/plugin-settings.intf'
+import { NoteVillageSettingTab } from './settings/settings-tab'
+import { VillageView } from '../ui/village-view'
 import { log } from '../utils/log'
-import { produce } from 'immer'
-import type { Draft } from 'immer'
 
-// TODO: Rename this class to match your plugin name (e.g., MyAwesomePlugin)
-export class MyPlugin extends Plugin {
+/**
+ * View type identifier for the village view
+ */
+export const NOTE_VILLAGE_VIEW_TYPE = 'note-village-view'
+
+/**
+ * Note Village plugin - A 2D pixel art village where notes become villagers
+ */
+export class NoteVillagePlugin extends Plugin {
     /**
-     * The plugin settings are immutable
+     * Plugin settings
      */
-    settings: PluginSettings = produce(DEFAULT_SETTINGS, () => DEFAULT_SETTINGS)
+    settings: PluginSettings = { ...DEFAULT_SETTINGS }
 
     /**
      * Executed as soon as the plugin loads
      */
-    override async onload() {
-        log('Initializing', 'debug')
+    override async onload(): Promise<void> {
+        log('Initializing Note Village', 'debug')
         await this.loadSettings()
 
-        // TODO
+        // Register the village view
+        this.registerView(NOTE_VILLAGE_VIEW_TYPE, (leaf) => new VillageView(leaf, this))
+
+        // Add command to open the village view
+        this.addCommand({
+            id: 'open-note-village',
+            name: 'Open Note Village',
+            callback: () => {
+                this.activateVillageView()
+            }
+        })
+
+        // Add ribbon icon
+        this.addRibbonIcon('home', 'Open Note Village', () => {
+            this.activateVillageView()
+        })
 
         // Add a settings screen for the plugin
-        this.addSettingTab(new MyPluginSettingTab(this.app, this))
+        this.addSettingTab(new NoteVillageSettingTab(this.app, this))
     }
 
-    override onunload() {}
+    override onunload(): void {
+        log('Unloading Note Village', 'debug')
+    }
 
     /**
      * Load the plugin settings
      */
-    async loadSettings() {
+    async loadSettings(): Promise<void> {
         log('Loading settings', 'debug')
-        let loadedSettings = (await this.loadData()) as PluginSettings
+        const loadedData = await this.loadData()
 
-        if (!loadedSettings) {
+        if (!loadedData) {
             log('Using default settings', 'debug')
-            loadedSettings = produce(DEFAULT_SETTINGS, () => DEFAULT_SETTINGS)
+            this.settings = { ...DEFAULT_SETTINGS }
             return
         }
 
-        let needToSaveSettings = false
+        // Parse and validate settings with Zod
+        const parseResult = PluginSettingsSchema.safeParse(loadedData)
 
-        this.settings = produce(this.settings, (draft: Draft<PluginSettings>) => {
-            if (loadedSettings.enabled) {
-                draft.enabled = loadedSettings.enabled
-            } else {
-                log('The loaded settings miss the [enabled] property', 'debug')
-                needToSaveSettings = true
-            }
-        })
-
-        log(`Settings loaded`, 'debug', loadedSettings)
-
-        if (needToSaveSettings) {
-            this.saveSettings()
+        if (parseResult.success) {
+            this.settings = parseResult.data
+            log('Settings loaded', 'debug', this.settings)
+        } else {
+            log('Invalid settings, using defaults', 'warn', parseResult.error)
+            this.settings = { ...DEFAULT_SETTINGS }
         }
     }
 
     /**
      * Save the plugin settings
      */
-    async saveSettings() {
+    async saveSettings(): Promise<void> {
         log('Saving settings', 'debug', this.settings)
         await this.saveData(this.settings)
         log('Settings saved', 'debug', this.settings)
+    }
+
+    /**
+     * Update a specific setting
+     */
+    async updateSetting<K extends keyof PluginSettings>(
+        key: K,
+        value: PluginSettings[K]
+    ): Promise<void> {
+        this.settings = { ...this.settings, [key]: value }
+        await this.saveSettings()
+    }
+
+    /**
+     * Activate the village view
+     */
+    async activateVillageView(): Promise<void> {
+        const { workspace } = this.app
+
+        let leaf = workspace.getLeavesOfType(NOTE_VILLAGE_VIEW_TYPE)[0]
+
+        if (!leaf) {
+            const rightLeaf = workspace.getRightLeaf(false)
+            if (rightLeaf) {
+                leaf = rightLeaf
+                await leaf.setViewState({
+                    type: NOTE_VILLAGE_VIEW_TYPE,
+                    active: true
+                })
+            }
+        }
+
+        if (leaf) {
+            workspace.revealLeaf(leaf)
+        }
+    }
+
+    /**
+     * Regenerate the village with current settings
+     */
+    regenerateVillage(): void {
+        log('Regenerating village', 'info')
+        const leaves = this.app.workspace.getLeavesOfType(NOTE_VILLAGE_VIEW_TYPE)
+        for (const leaf of leaves) {
+            const view = leaf.view
+            if (view instanceof VillageView) {
+                view.regenerate()
+            }
+        }
     }
 }

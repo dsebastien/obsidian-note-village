@@ -1,6 +1,10 @@
 {
     "compilerOptions": {
         "baseUrl": ".",
+        "paths": {
+            "#schemas/*": ["src/schemas/*"],
+            "#types/*": ["src/types/*"]
+        },
         "lib": ["DOM", "ESNext"],
         "target": "ESNext",
         "module": "ESNext",

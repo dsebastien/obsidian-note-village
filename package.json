@@ -1,26 +1,30 @@
 {
-    "name": "obsidian-my-plugin",
-    "version": "2.0.4",
-    "description": "TODO: Add your plugin description here",
+    "name": "obsidian-note-village",
+    "version": "0.1.0",
+    "description": "A 2D pixel art village where your notes become villagers you can explore and chat with using AI",
     "author": {
-        "name": "Your Name",
+        "name": "Sébastien Dubois",
         "email": "your-email@example.com",
-        "url": "https://your-website.com"
+        "url": "https://dsebastien.net"
     },
     "keywords": [
         "obsidian",
-        "obsidian-plugin"
+        "obsidian-plugin",
+        "game",
+        "village",
+        "ai",
+        "claude"
     ],
     "license": "MIT",
     "private": true,
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/your-username/obsidian-my-plugin.git"
+        "url": "git+https://github.com/dsebastien/obsidian-note-village.git"
     },
     "bugs": {
-        "url": "https://github.com/your-username/obsidian-my-plugin/issues"
+        "url": "https://github.com/dsebastien/obsidian-note-village/issues"
     },
-    "homepage": "https://github.com/your-username/obsidian-my-plugin",
+    "homepage": "https://github.com/dsebastien/obsidian-note-village",
     "engines": {
         "node": ">=20.0.0",
         "npm": ">=10.1.0"
@@ -79,7 +83,8 @@
         "typescript-eslint": "8.48.1"
     },
     "dependencies": {
-        "immer": "11.0.1",
+        "@anthropic-ai/sdk": "^0.71.2",
+        "excalibur": "^0.32.0",
         "zod": "^4.1.13"
     }
 }

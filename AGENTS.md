@@ -20,9 +20,10 @@
 **IMPORTANT**:
 
 - At the start of each new session, read the history files in `documentation/history` and plans in `documentation/plans` to understand the project, its current state and what should come next
-- Whenever making plans, DO NOT include timing information (e.g., 1-3 weeks, etc) UNLESS asked explicitly
+- **NO TIMING IN PLANS**: Plans MUST NEVER include timing information (e.g., "1-3 weeks", "Phase 1 takes X days"). Focus only on what needs to be done, not when
 - Whenever making plans, store or update those in `documentation/plans`
 - Whenever making plans, focus on actionable information
+- **Clarity over grammar**: Always prioritize clarity and conciseness over perfect grammar. Terse, clear documentation is better than verbose, grammatically perfect text
 
 History is maintained in `documentation/history/yyyy-mm-dd.md` files, organized chronologically. Each file documents:
 
@@ -137,7 +138,59 @@ scripts/
   build.spec.ts        # Tests for build.ts
   update-version.ts
   update-version.spec.ts
+src/
+  utils/
+    seeded-random.ts
+    seeded-random.spec.ts  # Tests for seeded-random.ts
 ```
+
+### Thorough Testing Requirements
+
+**MANDATORY**: All implementation files with logic MUST have corresponding `.spec.ts` test files.
+
+- **Coverage requirement**: Every exported function, class method, and significant code path must be tested
+- **Test file location**: Place `.spec.ts` files next to the files they test (co-located)
+- **Test what matters**: Focus on business logic, algorithms, data transformations, edge cases, and error handling
+- **Skip type-only files**: Files containing only interfaces (`.intf.ts`) or Zod schemas (`.schema.ts`) do not need tests
+- **Mock external dependencies**: Use mocks for Obsidian API, file system, and other external dependencies
+- **Deterministic tests**: Use seeded randomness and fixed inputs to ensure reproducible results
+- **Descriptive test names**: Use clear, descriptive test names that explain what is being tested
+
+**Test structure:**
+
+```typescript
+import { describe, test, expect, beforeEach, mock } from 'bun:test'
+
+describe('MyClass', () => {
+    describe('myMethod', () => {
+        test('should return expected result for valid input', () => {
+            // Arrange
+            const input = 'test'
+
+            // Act
+            const result = myMethod(input)
+
+            // Assert
+            expect(result).toBe('expected')
+        })
+
+        test('should handle edge case', () => {
+            // ...
+        })
+
+        test('should throw error for invalid input', () => {
+            expect(() => myMethod(null)).toThrow()
+        })
+    })
+})
+```
+
+**When to add tests:**
+
+- When creating new implementation files
+- When adding new functions or methods to existing files
+- When fixing bugs (add a test that would have caught the bug)
+- When refactoring (ensure existing behavior is preserved)
 
 - Manual install for testing: copy `main.js`, `manifest.json`, `styles.css` (if any) to:
     ```
@@ -242,6 +295,94 @@ Follow Obsidian's **Developer Policies** and **Plugin Guidelines**. In particula
 - Bundle everything into `main.js` (no unbundled runtime deps).
 - Avoid Node/Electron APIs if you want mobile compatibility; set `isDesktopOnly` accordingly.
 - Prefer `async/await` over promise chains; handle errors gracefully.
+
+### No Backwards Compatibility
+
+**MANDATORY**: Do not maintain backwards compatibility when refactoring:
+
+- When renaming, moving, or removing code, delete the old code completely
+- Never create re-exports, aliases, or shims for old import paths
+- Never add `// removed` comments or `_deprecated` prefixes
+- Update all consumers to use the new location/API directly
+- If something is unused, delete it completely
+
+### No Needless Re-exports
+
+**MANDATORY**: Import directly from the source, never through barrel files or re-exports:
+
+- Import types directly: `import { MyType } from '#types/my-type.intf'`
+- Import schemas directly: `import { MySchema } from '#schemas/my-schema.schema'`
+- Never create `index.ts` files that just re-export other modules
+- Each module should import what it needs from the exact source location
+
+### Zod Schema Organization
+
+**MANDATORY**: One schema per file, in `src/schemas/`:
+
+- Each Zod schema lives in its own `.schema.ts` file under `src/schemas/`
+- File naming: `<schema-name>.schema.ts` (e.g., `plugin-settings.schema.ts`)
+- Only the schema and related Zod definitions belong in schema files
+- Derived types (`z.infer<typeof Schema>`) go in corresponding `.intf.ts` files in `src/types/`
+
+Example structure:
+
+```
+src/
+  schemas/
+    plugin-settings.schema.ts   # PluginSettingsSchema
+    vector2d.schema.ts          # Vector2DSchema
+    zone.schema.ts              # ZoneSchema
+  types/
+    plugin-settings.intf.ts     # PluginSettings type
+    vector2d.intf.ts            # Vector2D type
+    zone.intf.ts                # Zone type
+```
+
+### Type/Interface Organization
+
+**MANDATORY**: One type/interface per file, in `src/types/`:
+
+- Each TypeScript type/interface lives in its own `.intf.ts` file under `src/types/`
+- File naming: `<type-name>.intf.ts` (e.g., `chat-message.intf.ts`)
+- Enums go in their own `.intf.ts` files alongside related types
+- Default values and constants can live with the type if closely related
+
+### Zod Usage Guidelines
+
+**MANDATORY**: Use Zod for all data validation and type definitions:
+
+- Define Zod schemas for all important data structures (settings, API responses, file data)
+- Derive TypeScript types from Zod schemas using `z.infer<typeof Schema>`
+- Use `.safeParse()` for validation that may fail (user input, loaded data)
+- Use `.parse()` only when data is guaranteed valid (internal transforms)
+- Use `z.nativeEnum()` for TypeScript enums
+- Add `.default()` values where appropriate for optional fields
+
+Example:
+
+```typescript
+// src/schemas/settings.schema.ts
+import { z } from 'zod'
+
+export const SettingsSchema = z.object({
+    enabled: z.boolean().default(true),
+    apiKey: z.string().default('')
+})
+
+// src/types/settings.intf.ts
+import type { z } from 'zod'
+import type { SettingsSchema } from '#schemas/settings.schema'
+
+export type Settings = z.infer<typeof SettingsSchema>
+
+// Usage
+import { SettingsSchema } from '#schemas/settings.schema'
+
+const result = SettingsSchema.safeParse(loadedData)
+if (result.success) {
+    this.settings = result.data
+}
+```
 
 ### TypeScript Configuration
 
