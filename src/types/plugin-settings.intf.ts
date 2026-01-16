@@ -17,6 +17,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     topTagCount: 10,
     maxVillagers: 100,
     excludedFolders: [],
+    excludedTags: [],
     renderQuality: RenderQuality.HIGH,
     anthropicApiKey: '',
     aiModel: AIModel.CLAUDE_SONNET_4,

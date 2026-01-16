@@ -252,6 +252,32 @@ describe('MyClass', () => {
 - Persist settings using `this.loadData()` / `this.saveData()`.
 - Use stable command IDs; avoid renaming once released.
 
+### Settings and Village Regeneration
+
+When adding new settings, determine if they affect village generation. If so, call `this.plugin.regenerateVillage()` in the onChange handler after saving the setting.
+
+**Settings that trigger regeneration** (affect village layout/content):
+
+- `villageSeed` - changes which notes become villagers and their positions
+- `topTagCount` - changes number of zones and grid layout
+- `maxVillagers` - changes how many villagers appear
+- `excludedFolders` - changes which notes are included/excluded
+
+**Settings that do NOT trigger regeneration** (config/visual only):
+
+- `renderQuality` - only affects graphics performance
+- `anthropicApiKey`, `aiModel` - AI conversation config
+- `saveConversations`, `conversationFolder` - storage config
+
+**Pattern for generation-affecting settings:**
+
+```typescript
+.onChange(async (value) => {
+    await this.plugin.updateSetting('settingKey', value)
+    this.plugin.regenerateVillage()  // Add this for generation-affecting settings
+})
+```
+
 ## Versioning & releases
 
 - Bump `version` in `manifest.json` (SemVer) and update `versions.json` to map plugin version → minimum app version.

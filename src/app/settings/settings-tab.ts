@@ -35,6 +35,7 @@ export class NoteVillageSettingTab extends PluginSettingTab {
                     .setValue(this.plugin.settings.villageSeed)
                     .onChange(async (value) => {
                         await this.plugin.updateSetting('villageSeed', value)
+                        this.plugin.regenerateVillage()
                     })
             )
 
@@ -48,6 +49,7 @@ export class NoteVillageSettingTab extends PluginSettingTab {
                     .setDynamicTooltip()
                     .onChange(async (value) => {
                         await this.plugin.updateSetting('topTagCount', value)
+                        this.plugin.regenerateVillage()
                     })
             )
 
@@ -61,6 +63,7 @@ export class NoteVillageSettingTab extends PluginSettingTab {
                     .setDynamicTooltip()
                     .onChange(async (value) => {
                         await this.plugin.updateSetting('maxVillagers', value)
+                        this.plugin.regenerateVillage()
                     })
             )
 
@@ -133,6 +136,7 @@ export class NoteVillageSettingTab extends PluginSettingTab {
                         // Add to excluded folders
                         const newExcludedFolders = [...excludedFolders, folderPath]
                         await this.plugin.updateSetting('excludedFolders', newExcludedFolders)
+                        this.plugin.regenerateVillage()
 
                         // Clear input and refresh display
                         inputEl.value = ''
@@ -161,6 +165,7 @@ export class NoteVillageSettingTab extends PluginSettingTab {
                 (f) => f !== folderPath
             )
             await this.plugin.updateSetting('excludedFolders', newExcludedFolders)
+            this.plugin.regenerateVillage()
             this.display()
         })
     }
