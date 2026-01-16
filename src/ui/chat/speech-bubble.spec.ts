@@ -1,4 +1,18 @@
-import { describe, test, expect, beforeEach } from 'bun:test'
+import { describe, test, expect, beforeEach, afterEach, mock } from 'bun:test'
+
+// Mock requestAnimationFrame/cancelAnimationFrame
+let rafId = 0
+const rafCallbacks: Map<number, () => void> = new Map()
+
+globalThis.requestAnimationFrame = mock((callback: () => void) => {
+    const id = ++rafId
+    rafCallbacks.set(id, callback)
+    return id
+})
+
+globalThis.cancelAnimationFrame = mock((id: number) => {
+    rafCallbacks.delete(id)
+})
 
 // Create mock DOM element
 class MockHTMLElement {
@@ -41,8 +55,17 @@ class MockActor {
     }
 }
 
+class MockCamera {
+    zoom = 2.5
+}
+
+class MockScene {
+    camera = new MockCamera()
+}
+
 class MockEngine {
     screen = new MockScreen()
+    currentScene = new MockScene()
 }
 
 // Import after mocking (no external mocks needed since it only uses types)
@@ -53,8 +76,16 @@ describe('SpeechBubble', () => {
     let bubble: InstanceType<typeof SpeechBubble>
 
     beforeEach(() => {
+        // Clear RAF callbacks between tests
+        rafCallbacks.clear()
+        rafId = 0
         parentEl = new MockHTMLElement()
         bubble = new SpeechBubble(parentEl as unknown as HTMLElement)
+    })
+
+    afterEach(() => {
+        // Clean up any active tracking
+        bubble.destroy()
     })
 
     describe('constructor', () => {

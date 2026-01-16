@@ -8,6 +8,7 @@ export class SpeechBubble {
     private textEl: HTMLElement
     private targetActor: ex.Actor | null = null
     private engine: ex.Engine | null = null
+    private animationFrameId: number | null = null
 
     constructor(parentEl: HTMLElement) {
         this.container = parentEl.createDiv({ cls: 'note-village-speech-bubble' })
@@ -28,6 +29,7 @@ export class SpeechBubble {
         this.textEl.setText(text)
         this.container.style.display = 'block'
         this.updatePosition()
+        this.startTracking()
     }
 
     /**
@@ -41,6 +43,7 @@ export class SpeechBubble {
      * Hide speech bubble
      */
     hide(): void {
+        this.stopTracking()
         this.container.style.display = 'none'
         this.targetActor = null
         this.engine = null
@@ -54,8 +57,29 @@ export class SpeechBubble {
     }
 
     /**
+     * Start continuously tracking the target actor's position
+     */
+    private startTracking(): void {
+        this.stopTracking()
+        const track = (): void => {
+            this.updatePosition()
+            this.animationFrameId = requestAnimationFrame(track)
+        }
+        this.animationFrameId = requestAnimationFrame(track)
+    }
+
+    /**
+     * Stop tracking the target actor
+     */
+    private stopTracking(): void {
+        if (this.animationFrameId !== null) {
+            cancelAnimationFrame(this.animationFrameId)
+            this.animationFrameId = null
+        }
+    }
+
+    /**
      * Update position to follow actor
-     * Call this each frame if actor moves
      */
     updatePosition(): void {
         if (!this.targetActor || !this.engine) return
@@ -64,8 +88,9 @@ export class SpeechBubble {
         const worldPos = this.targetActor.pos
         const screenPos = this.engine.screen.worldToScreenCoordinates(worldPos)
 
-        // Position bubble above actor
-        const offsetY = -60 // Above the actor
+        // Position bubble above actor (accounting for actor height and camera zoom)
+        const zoom = this.engine.currentScene?.camera?.zoom ?? 1
+        const offsetY = -40 * zoom // Above the actor, scaled by zoom
         this.container.style.left = `${screenPos.x}px`
         this.container.style.top = `${screenPos.y + offsetY}px`
     }
@@ -74,6 +99,7 @@ export class SpeechBubble {
      * Destroy the speech bubble
      */
     destroy(): void {
+        this.stopTracking()
         this.container.remove()
     }
 }
