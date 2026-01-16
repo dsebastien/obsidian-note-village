@@ -17,6 +17,9 @@ mock.module('../../vault/tag-analyzer', () => ({
         setExcludedFolders(_folders: string[]): void {
             // Mock implementation
         }
+        setExcludedTags(_tags: string[]): void {
+            // Mock implementation
+        }
         getTopTags(_count: number): TagCount[] {
             return mockTopTags
         }

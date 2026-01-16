@@ -262,6 +262,7 @@ When adding new settings, determine if they affect village generation. If so, ca
 - `topTagCount` - changes number of zones and grid layout
 - `maxVillagers` - changes how many villagers appear
 - `excludedFolders` - changes which notes are included/excluded
+- `excludedTags` - changes which tags can be used as zones
 
 **Settings that do NOT trigger regeneration** (config/visual only):
 

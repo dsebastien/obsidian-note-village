@@ -278,5 +278,105 @@ describe('TagAnalyzer', () => {
 
             expect(result).toEqual([])
         })
+
+        test('should exclude tags set via setExcludedTags', () => {
+            mockFiles = [
+                createMockFile('note1.md', 'note1'),
+                createMockFile('note2.md', 'note2'),
+                createMockFile('note3.md', 'note3')
+            ]
+            mockMetadataCache.set(
+                'note1.md',
+                createMockMetadata({ inlineTags: ['#project', '#archived', '#important'] })
+            )
+            mockMetadataCache.set(
+                'note2.md',
+                createMockMetadata({ inlineTags: ['#project', '#archived'] })
+            )
+            mockMetadataCache.set('note3.md', createMockMetadata({ inlineTags: ['#project'] }))
+
+            const analyzer = new TagAnalyzer(mockApp)
+            analyzer.setExcludedTags(['archived'])
+            const result = analyzer.getTopTags(10)
+
+            // 'archived' should not appear in results
+            expect(result.find((t) => t.tag === 'archived')).toBeUndefined()
+            // 'project' and 'important' should still be there
+            expect(result.find((t) => t.tag === 'project')).toBeDefined()
+            expect(result.find((t) => t.tag === 'important')).toBeDefined()
+        })
+
+        test('should exclude multiple tags', () => {
+            mockFiles = [createMockFile('note1.md', 'note1')]
+            mockMetadataCache.set(
+                'note1.md',
+                createMockMetadata({ inlineTags: ['#keep', '#exclude1', '#exclude2'] })
+            )
+
+            const analyzer = new TagAnalyzer(mockApp)
+            analyzer.setExcludedTags(['exclude1', 'exclude2'])
+            const result = analyzer.getTopTags(10)
+
+            expect(result.length).toBe(1)
+            expect(result[0]?.tag).toBe('keep')
+        })
+
+        test('should be case-insensitive when excluding tags', () => {
+            mockFiles = [createMockFile('note1.md', 'note1')]
+            mockMetadataCache.set(
+                'note1.md',
+                createMockMetadata({ inlineTags: ['#MyTag', '#OtherTag'] })
+            )
+
+            const analyzer = new TagAnalyzer(mockApp)
+            analyzer.setExcludedTags(['MYTAG']) // Uppercase exclusion
+            const result = analyzer.getTopTags(10)
+
+            expect(result.length).toBe(1)
+            expect(result[0]?.tag).toBe('othertag')
+        })
+
+        test('should handle excluded tag with # prefix', () => {
+            mockFiles = [createMockFile('note1.md', 'note1')]
+            mockMetadataCache.set(
+                'note1.md',
+                createMockMetadata({ inlineTags: ['#exclude-me', '#keep-me'] })
+            )
+
+            const analyzer = new TagAnalyzer(mockApp)
+            // Even though tags are stored without #, exclusion should handle it
+            analyzer.setExcludedTags(['exclude-me'])
+            const result = analyzer.getTopTags(10)
+
+            expect(result.length).toBe(1)
+            expect(result[0]?.tag).toBe('keep-me')
+        })
+
+        test('should still return correct count when excluded tags reduce available count', () => {
+            mockFiles = [
+                createMockFile('note1.md', 'note1'),
+                createMockFile('note2.md', 'note2'),
+                createMockFile('note3.md', 'note3')
+            ]
+            mockMetadataCache.set(
+                'note1.md',
+                createMockMetadata({ inlineTags: ['#tag1', '#tag2', '#excluded'] })
+            )
+            mockMetadataCache.set(
+                'note2.md',
+                createMockMetadata({ inlineTags: ['#tag1', '#excluded'] })
+            )
+            mockMetadataCache.set('note3.md', createMockMetadata({ inlineTags: ['#tag1'] }))
+
+            const analyzer = new TagAnalyzer(mockApp)
+            analyzer.setExcludedTags(['excluded'])
+
+            // Request 3 tags, but only 2 remain after exclusion
+            const result = analyzer.getTopTags(3)
+
+            expect(result.length).toBe(2)
+            expect(result[0]?.tag).toBe('tag1')
+            expect(result[1]?.tag).toBe('tag2')
+        })
     })
 })

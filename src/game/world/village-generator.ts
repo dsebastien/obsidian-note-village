@@ -63,7 +63,8 @@ export class VillageGenerator {
     constructor(
         app: App,
         options: Partial<VillageGeneratorOptions> & { seed: string },
-        excludedFolders: string[] = []
+        excludedFolders: string[] = [],
+        excludedTags: string[] = []
     ) {
         // Parse options with defaults
         this.options = VillageGeneratorOptionsSchema.parse(options)
@@ -74,6 +75,9 @@ export class VillageGenerator {
         // Set excluded folders
         this.tagAnalyzer.setExcludedFolders(excludedFolders)
         this.noteScanner.setExcludedFolders(excludedFolders)
+
+        // Set excluded tags
+        this.tagAnalyzer.setExcludedTags(excludedTags)
     }
 
     private options: VillageGeneratorOptions

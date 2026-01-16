@@ -8,6 +8,7 @@ import type { TagAnalysisResult } from '#types/tag-analysis-result.intf'
  */
 export class TagAnalyzer {
     private excludedFolders: string[] = []
+    private excludedTags: string[] = []
 
     constructor(private app: App) {}
 
@@ -17,6 +18,21 @@ export class TagAnalyzer {
     setExcludedFolders(folders: string[]): void {
         this.excludedFolders = folders
         log(`TagAnalyzer: Excluding folders: ${folders.join(', ')}`, 'debug')
+    }
+
+    /**
+     * Set tags to exclude from zone selection
+     */
+    setExcludedTags(tags: string[]): void {
+        this.excludedTags = tags.map((t) => t.toLowerCase())
+        log(`TagAnalyzer: Excluding tags: ${this.excludedTags.join(', ')}`, 'debug')
+    }
+
+    /**
+     * Check if a tag is excluded
+     */
+    private isTagExcluded(tag: string): boolean {
+        return this.excludedTags.includes(tag.toLowerCase())
     }
 
     /**
@@ -74,11 +90,13 @@ export class TagAnalyzer {
     }
 
     /**
-     * Get top N tags by frequency
+     * Get top N tags by frequency, excluding any tags in the excluded list
      */
     getTopTags(count: number): TagCount[] {
         const result = this.analyzeAllTags()
-        return result.tags.slice(0, count)
+        // Filter out excluded tags before slicing
+        const filteredTags = result.tags.filter((tagCount) => !this.isTagExcluded(tagCount.tag))
+        return filteredTags.slice(0, count)
     }
 
     /**

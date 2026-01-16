@@ -338,7 +338,8 @@ export class VillageView extends ItemView {
                 topTagCount: this.plugin.settings.topTagCount,
                 maxVillagers: this.plugin.settings.maxVillagers
             },
-            this.plugin.settings.excludedFolders
+            this.plugin.settings.excludedFolders,
+            this.plugin.settings.excludedTags
         )
 
         return generator.generate()

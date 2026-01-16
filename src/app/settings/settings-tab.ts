@@ -3,6 +3,7 @@ import type { NoteVillagePlugin } from '../plugin'
 import { AIModel } from '#types/ai-model.intf'
 import { RenderQuality } from '#types/render-quality.intf'
 import { FolderSuggester } from '../../ui/folder-suggester'
+import { TagSuggester } from '../../ui/tag-suggester'
 
 export class NoteVillageSettingTab extends PluginSettingTab {
     plugin: NoteVillagePlugin
@@ -69,6 +70,9 @@ export class NoteVillageSettingTab extends PluginSettingTab {
 
         // Excluded folders section
         this.renderExcludedFolders(containerEl)
+
+        // Excluded tags section
+        this.renderExcludedTags(containerEl)
 
         new Setting(containerEl)
             .setName('Regenerate village')
@@ -165,6 +169,89 @@ export class NoteVillageSettingTab extends PluginSettingTab {
                 (f) => f !== folderPath
             )
             await this.plugin.updateSetting('excludedFolders', newExcludedFolders)
+            this.plugin.regenerateVillage()
+            this.display()
+        })
+    }
+
+    private renderExcludedTags(containerEl: HTMLElement): void {
+        const excludedTags = this.plugin.settings.excludedTags
+
+        new Setting(containerEl)
+            .setName('Excluded tags')
+            .setDesc(
+                'Tags to exclude from zone selection (notes with only these tags will not become villagers)'
+            )
+
+        // Container for the excluded tags list
+        const tagsContainer = containerEl.createDiv({ cls: 'note-village-excluded-tags' })
+
+        // Render each excluded tag with a remove button
+        for (const tag of excludedTags) {
+            this.renderExcludedTag(tagsContainer, tag)
+        }
+
+        // Add new tag input
+        const addTagSetting = new Setting(containerEl)
+            .setClass('note-village-add-tag')
+            .addText((text) => {
+                const inputEl = text.inputEl
+                inputEl.placeholder = 'Type tag name...'
+
+                // Add tag suggester
+                new TagSuggester(this.app, inputEl)
+
+                return text
+            })
+            .addButton((button) =>
+                button
+                    .setButtonText('Add')
+                    .setCta()
+                    .onClick(async () => {
+                        const inputEl = addTagSetting.controlEl.querySelector('input')
+                        if (!inputEl) return
+
+                        // Normalize tag (remove # prefix if present, lowercase)
+                        const rawTag = inputEl.value.trim()
+                        if (!rawTag) return
+                        const tag = rawTag.replace(/^#/, '').toLowerCase()
+
+                        // Check if already excluded
+                        if (excludedTags.includes(tag)) {
+                            inputEl.value = ''
+                            return
+                        }
+
+                        // Add to excluded tags
+                        const newExcludedTags = [...excludedTags, tag]
+                        await this.plugin.updateSetting('excludedTags', newExcludedTags)
+                        this.plugin.regenerateVillage()
+
+                        // Clear input and refresh display
+                        inputEl.value = ''
+                        this.display()
+                    })
+            )
+    }
+
+    private renderExcludedTag(container: HTMLElement, tag: string): void {
+        const tagEl = container.createDiv({ cls: 'note-village-excluded-tag' })
+
+        // Tag name
+        tagEl.createSpan({
+            cls: 'note-village-excluded-tag-name',
+            text: tag
+        })
+
+        // Remove button
+        const removeBtn = tagEl.createEl('button', {
+            cls: 'note-village-excluded-tag-remove',
+            attr: { 'aria-label': 'Remove tag' }
+        })
+        removeBtn.innerHTML = '×'
+        removeBtn.addEventListener('click', async () => {
+            const newExcludedTags = this.plugin.settings.excludedTags.filter((t) => t !== tag)
+            await this.plugin.updateSetting('excludedTags', newExcludedTags)
             this.plugin.regenerateVillage()
             this.display()
         })

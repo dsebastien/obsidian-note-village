@@ -256,6 +256,47 @@
 }
 
 /* ========================================
+   EXCLUDED TAGS SETTINGS
+   ======================================== */
+
+.note-village-excluded-tags {
+    @apply flex flex-wrap gap-2 mb-3;
+}
+
+.note-village-excluded-tag {
+    @apply inline-flex items-center gap-1 px-2 py-1 rounded;
+    background-color: var(--background-secondary);
+    border: 1px solid var(--background-modifier-border);
+}
+
+.note-village-excluded-tag-name {
+    font-size: 0.9em;
+    color: var(--text-normal);
+}
+
+.note-village-excluded-tag-remove {
+    @apply flex items-center justify-center p-0 cursor-pointer;
+    @apply transition-all duration-150;
+    background: transparent;
+    border: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 1;
+}
+
+.note-village-excluded-tag-remove:hover {
+    background-color: var(--background-modifier-hover);
+    color: var(--text-error);
+}
+
+.note-village-add-tag .setting-item-control {
+    @apply flex gap-2;
+}
+
+/* ========================================
    MINIMAP
    ======================================== */
 
