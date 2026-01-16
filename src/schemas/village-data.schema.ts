@@ -16,5 +16,14 @@ export const VillageDataSchema = z.object({
     worldSize: z.object({
         width: z.number(),
         height: z.number()
-    })
+    }),
+    /** Playable area bounds (inside the forest border) */
+    playableArea: z
+        .object({
+            x: z.number(),
+            y: z.number(),
+            width: z.number(),
+            height: z.number()
+        })
+        .optional()
 })

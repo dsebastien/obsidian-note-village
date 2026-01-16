@@ -2,9 +2,9 @@ import { describe, test, expect, beforeEach, afterEach, mock } from 'bun:test'
 
 // Mock requestAnimationFrame/cancelAnimationFrame
 let rafId = 0
-const rafCallbacks: Map<number, () => void> = new Map()
+const rafCallbacks: Map<number, FrameRequestCallback> = new Map()
 
-globalThis.requestAnimationFrame = mock((callback: () => void) => {
+globalThis.requestAnimationFrame = mock((callback: FrameRequestCallback) => {
     const id = ++rafId
     rafCallbacks.set(id, callback)
     return id

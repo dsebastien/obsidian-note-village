@@ -315,15 +315,26 @@ export class VillageScene extends ex.Scene {
         const pos = toExVector(structure.position)
         const variant = this.getStructureVariant(structure.id)
 
-        const sprite = this.spriteManager.getStructureSprite(structure.type, variant)
+        // Use 'tree' sprite for forest structures
+        const spriteType = structure.type === 'forest' ? 'tree' : structure.type
+        const sprite = this.spriteManager.getStructureSprite(spriteType, variant)
         const { width, height } = this.getStructureSize(structure.type)
+
+        // Use Fixed collision for blocking structures (forest border)
+        const collisionType = structure.isBlocking
+            ? ex.CollisionType.Fixed
+            : ex.CollisionType.PreventCollision
+
+        // For blocking structures, use a smaller collision box at the base
+        const collisionWidth = structure.isBlocking ? width * 0.6 : width
+        const collisionHeight = structure.isBlocking ? height * 0.3 : height
 
         const actor = new ex.Actor({
             pos,
             anchor: ex.Vector.Half,
-            width,
-            height,
-            collisionType: ex.CollisionType.PreventCollision
+            width: collisionWidth,
+            height: collisionHeight,
+            collisionType
         })
 
         if (sprite) {
@@ -373,6 +384,8 @@ export class VillageScene extends ex.Scene {
                 return { width: 48, height: 48 }
             case 'tree':
                 return { width: 32, height: 40 }
+            case 'forest':
+                return { width: 32, height: 40 }
             case 'fountain':
                 return { width: 48, height: 48 }
             case 'bench':
@@ -393,6 +406,8 @@ export class VillageScene extends ex.Scene {
         switch (type) {
             case 'tree':
                 return 2 // Trees are tall, should render above most things
+            case 'forest':
+                return 2 // Forest trees same as regular trees
             case 'house':
                 return 1
             case 'fountain':
@@ -432,6 +447,8 @@ export class VillageScene extends ex.Scene {
                 return ex.Color.fromHex('#DEB887')
             case 'tree':
                 return ex.Color.fromHex('#228B22')
+            case 'forest':
+                return ex.Color.fromHex('#1B5E20') // Darker green for forest trees
             case 'fence':
                 return ex.Color.fromHex('#A0522D')
             case 'fountain':

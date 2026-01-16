@@ -46,6 +46,12 @@ const ZONE_SIZE = 300
 /** Gap between zones */
 const ZONE_GAP = 20
 
+/** Width of the forest border around the world */
+const FOREST_BORDER_WIDTH = 80
+
+/** Spacing between forest trees */
+const FOREST_TREE_SPACING = 24
+
 /**
  * Generates village layout from vault data with JRPG-style rectangular grid
  */
@@ -94,14 +100,25 @@ export class VillageGenerator {
         // Generate structures
         const structures = this.generateStructures(zones, villagers)
 
-        // Calculate world size based on grid
+        // Calculate world size based on grid (with forest border)
         const gridCols = Math.ceil(Math.sqrt(topTags.length + 1)) // +1 for plaza
         const gridRows = Math.ceil((topTags.length + 1) / gridCols)
-        const worldWidth = gridCols * (ZONE_SIZE + ZONE_GAP) + ZONE_GAP + 200
-        const worldHeight = gridRows * (ZONE_SIZE + ZONE_GAP) + ZONE_GAP + 200
+        // Add forest border on all sides
+        const innerWidth = gridCols * (ZONE_SIZE + ZONE_GAP) + ZONE_GAP + 200
+        const innerHeight = gridRows * (ZONE_SIZE + ZONE_GAP) + ZONE_GAP + 200
+        const worldWidth = innerWidth + FOREST_BORDER_WIDTH * 2
+        const worldHeight = innerHeight + FOREST_BORDER_WIDTH * 2
         const worldSize = { width: worldWidth, height: worldHeight }
 
-        // Spawn point is at the center of the plaza
+        // Store playable area bounds (inside the forest)
+        this.playableArea = {
+            x: FOREST_BORDER_WIDTH,
+            y: FOREST_BORDER_WIDTH,
+            width: innerWidth,
+            height: innerHeight
+        }
+
+        // Spawn point is at the center of the plaza (adjusted for forest offset)
         const spawnPoint = { x: worldWidth / 2, y: worldHeight / 2 }
 
         return {
@@ -110,7 +127,8 @@ export class VillageGenerator {
             villagers,
             structures,
             spawnPoint,
-            worldSize
+            worldSize,
+            playableArea: this.playableArea
         }
     }
 
@@ -140,9 +158,9 @@ export class VillageGenerator {
                 const tagData = topTags[zoneIndex]
                 if (!tagData) continue
 
-                // Calculate zone position (top-left corner)
-                const zoneX = ZONE_GAP + col * (ZONE_SIZE + ZONE_GAP)
-                const zoneY = ZONE_GAP + row * (ZONE_SIZE + ZONE_GAP)
+                // Calculate zone position (top-left corner, offset by forest border)
+                const zoneX = FOREST_BORDER_WIDTH + ZONE_GAP + col * (ZONE_SIZE + ZONE_GAP)
+                const zoneY = FOREST_BORDER_WIDTH + ZONE_GAP + row * (ZONE_SIZE + ZONE_GAP)
 
                 const zone: Zone = {
                     id: `zone-${zoneIndex}`,
@@ -161,11 +179,17 @@ export class VillageGenerator {
             }
         }
 
-        // Store plaza info for later use (as a pseudo-zone for structures)
+        // Store plaza info for later use (as a pseudo-zone for structures, offset by forest border)
         this.plazaX =
-            ZONE_GAP + plazaCenterCol * (ZONE_SIZE + ZONE_GAP) + (ZONE_SIZE - PLAZA_SIZE) / 2
+            FOREST_BORDER_WIDTH +
+            ZONE_GAP +
+            plazaCenterCol * (ZONE_SIZE + ZONE_GAP) +
+            (ZONE_SIZE - PLAZA_SIZE) / 2
         this.plazaY =
-            ZONE_GAP + plazaCenterRow * (ZONE_SIZE + ZONE_GAP) + (ZONE_SIZE - PLAZA_SIZE) / 2
+            FOREST_BORDER_WIDTH +
+            ZONE_GAP +
+            plazaCenterRow * (ZONE_SIZE + ZONE_GAP) +
+            (ZONE_SIZE - PLAZA_SIZE) / 2
         this.plazaWidth = PLAZA_SIZE
         this.plazaHeight = PLAZA_SIZE
 
@@ -176,6 +200,7 @@ export class VillageGenerator {
     private plazaY = 0
     private plazaWidth = PLAZA_SIZE
     private plazaHeight = PLAZA_SIZE
+    private playableArea = { x: 0, y: 0, width: 0, height: 0 }
 
     /**
      * Get plaza bounds for external use
@@ -187,6 +212,13 @@ export class VillageGenerator {
             width: this.plazaWidth,
             height: this.plazaHeight
         }
+    }
+
+    /**
+     * Get playable area bounds (inside the forest border)
+     */
+    getPlayableArea(): { x: number; y: number; width: number; height: number } {
+        return { ...this.playableArea }
     }
 
     /**
@@ -320,24 +352,108 @@ export class VillageGenerator {
             })
         }
 
-        // Decorations (trees, fences) within each zone
+        // Decorations (only fences) within each zone - trees are now in the forest border
         for (const zone of zones) {
-            const numDecorations = Math.floor(zone.noteCount * this.options.decorationDensity * 5)
+            const numDecorations = Math.floor(zone.noteCount * this.options.decorationDensity * 2)
 
             for (let i = 0; i < numDecorations; i++) {
                 const pos = this.random.nextPointInRect(zone.x, zone.y, zone.width, zone.height, 10)
-                const decorationType = this.random.nextBool(0.7) ? 'tree' : 'fence'
 
                 structures.push({
                     id: `decoration-${zone.id}-${i}`,
-                    type: decorationType,
+                    type: 'fence',
                     position: pos,
                     zoneId: zone.id
                 })
             }
         }
 
+        // Generate forest border around the world
+        this.generateForestBorder(structures)
+
         return structures
+    }
+
+    /**
+     * Generate dense forest border around the world perimeter
+     * The forest acts as an impassable barrier
+     */
+    private generateForestBorder(structures: StructureData[]): void {
+        const worldWidth = this.playableArea.width + FOREST_BORDER_WIDTH * 2
+        const worldHeight = this.playableArea.height + FOREST_BORDER_WIDTH * 2
+
+        let forestIndex = 0
+
+        // Generate trees in the forest border (all four edges)
+        // Top edge
+        for (let x = 0; x < worldWidth; x += FOREST_TREE_SPACING) {
+            for (let y = 0; y < FOREST_BORDER_WIDTH; y += FOREST_TREE_SPACING) {
+                const offsetX = this.random.nextFloat(-4, 4)
+                const offsetY = this.random.nextFloat(-4, 4)
+                structures.push({
+                    id: `forest-${forestIndex++}`,
+                    type: 'forest',
+                    position: { x: x + offsetX, y: y + offsetY },
+                    isBlocking: true
+                })
+            }
+        }
+
+        // Bottom edge
+        for (let x = 0; x < worldWidth; x += FOREST_TREE_SPACING) {
+            for (
+                let y = worldHeight - FOREST_BORDER_WIDTH;
+                y < worldHeight;
+                y += FOREST_TREE_SPACING
+            ) {
+                const offsetX = this.random.nextFloat(-4, 4)
+                const offsetY = this.random.nextFloat(-4, 4)
+                structures.push({
+                    id: `forest-${forestIndex++}`,
+                    type: 'forest',
+                    position: { x: x + offsetX, y: y + offsetY },
+                    isBlocking: true
+                })
+            }
+        }
+
+        // Left edge (excluding corners already covered)
+        for (let x = 0; x < FOREST_BORDER_WIDTH; x += FOREST_TREE_SPACING) {
+            for (
+                let y = FOREST_BORDER_WIDTH;
+                y < worldHeight - FOREST_BORDER_WIDTH;
+                y += FOREST_TREE_SPACING
+            ) {
+                const offsetX = this.random.nextFloat(-4, 4)
+                const offsetY = this.random.nextFloat(-4, 4)
+                structures.push({
+                    id: `forest-${forestIndex++}`,
+                    type: 'forest',
+                    position: { x: x + offsetX, y: y + offsetY },
+                    isBlocking: true
+                })
+            }
+        }
+
+        // Right edge (excluding corners already covered)
+        for (let x = worldWidth - FOREST_BORDER_WIDTH; x < worldWidth; x += FOREST_TREE_SPACING) {
+            for (
+                let y = FOREST_BORDER_WIDTH;
+                y < worldHeight - FOREST_BORDER_WIDTH;
+                y += FOREST_TREE_SPACING
+            ) {
+                const offsetX = this.random.nextFloat(-4, 4)
+                const offsetY = this.random.nextFloat(-4, 4)
+                structures.push({
+                    id: `forest-${forestIndex++}`,
+                    type: 'forest',
+                    position: { x: x + offsetX, y: y + offsetY },
+                    isBlocking: true
+                })
+            }
+        }
+
+        log(`Generated ${forestIndex} forest border trees`, 'debug')
     }
 
     /**
