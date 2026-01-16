@@ -98,6 +98,10 @@ export class VillageView extends ItemView {
             scene.setVillagerInteractionCallback((villager) => {
                 this.handleVillagerInteraction(villager)
             })
+
+            // Load villagers in the background after game is ready
+            // This prevents blocking the initial render
+            scene.spawnVillagersInBatches(5, 50)
         }
 
         // Set up resize observer
@@ -257,17 +261,26 @@ export class VillageView extends ItemView {
     }
 
     /**
-     * Update canvas size to fill container
+     * Update canvas size to fill container.
+     * Returns true if canvas has valid dimensions.
      */
-    private updateCanvasSize(): void {
-        if (!this.canvas) return
+    private updateCanvasSize(): boolean {
+        if (!this.canvas) return false
 
         const container = this.containerEl.children[1]
-        if (!container) return
+        if (!container) return false
 
         const rect = container.getBoundingClientRect()
-        this.canvas.width = rect.width
-        this.canvas.height = rect.height
+
+        // Ensure minimum size to prevent WebGL framebuffer errors
+        const MIN_SIZE = 100
+        const width = Math.max(MIN_SIZE, rect.width || MIN_SIZE)
+        const height = Math.max(MIN_SIZE, rect.height || MIN_SIZE)
+
+        this.canvas.width = width
+        this.canvas.height = height
+
+        return width > 0 && height > 0
     }
 
     /**
@@ -287,7 +300,8 @@ export class VillageView extends ItemView {
     private generateVillageData(): VillageData {
         const generator = new VillageGenerator(this.app, {
             seed: this.plugin.settings.villageSeed || this.app.vault.getName(),
-            topTagCount: this.plugin.settings.topTagCount
+            topTagCount: this.plugin.settings.topTagCount,
+            maxVillagers: this.plugin.settings.maxVillagers
         })
 
         return generator.generate()
@@ -344,12 +358,15 @@ export class VillageView extends ItemView {
         const villageData = this.generateVillageData()
         await this.game.initialize(villageData)
 
-        // Re-wire villager interaction
+        // Re-wire villager interaction and load villagers in background
         const scene = this.game.getScene()
         if (scene) {
             scene.setVillagerInteractionCallback((villager) => {
                 this.handleVillagerInteraction(villager)
             })
+
+            // Load villagers in the background
+            scene.spawnVillagersInBatches(5, 50)
         }
     }
 }

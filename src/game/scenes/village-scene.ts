@@ -39,8 +39,8 @@ export class VillageScene extends ex.Scene {
         // Spawn structures (houses, signs, decorations)
         this.spawnStructures()
 
-        // Spawn villagers from notes
-        this.spawnVillagers()
+        // NOTE: Villagers are NOT spawned here - they are loaded asynchronously
+        // via spawnVillagersInBatches() after the scene is ready
 
         // Create and add player
         this.player = new Player(toExVector(this.villageData.spawnPoint))
@@ -50,7 +50,7 @@ export class VillageScene extends ex.Scene {
         this.camera.strategy.lockToActor(this.player)
         this.camera.zoom = 2
 
-        log('Village scene initialized', 'debug')
+        log('Village scene initialized (villagers will load in background)', 'debug')
     }
 
     /**
@@ -75,7 +75,8 @@ export class VillageScene extends ex.Scene {
             anchor: ex.Vector.Zero,
             width,
             height,
-            color: ex.Color.fromHex('#4a7c59')
+            color: ex.Color.fromHex('#4a7c59'),
+            collisionType: ex.CollisionType.PreventCollision // No collision for terrain
         })
         ground.z = -100 // Behind everything
         this.add(ground)
@@ -90,7 +91,8 @@ export class VillageScene extends ex.Scene {
             pos: ex.Vector.Zero,
             anchor: ex.Vector.Half,
             radius: 100,
-            color: ex.Color.fromHex('#d4a574') // Sandy color
+            color: ex.Color.fromHex('#d4a574'), // Sandy color
+            collisionType: ex.CollisionType.PreventCollision // No collision for plaza
         })
         plaza.z = -50
         this.add(plaza)
@@ -105,7 +107,8 @@ export class VillageScene extends ex.Scene {
             pos: ex.Vector.Zero,
             anchor: ex.Vector.Half,
             radius: zone.outerRadius,
-            color: ex.Color.fromHex(zone.color).desaturate(0.5).lighten(0.3)
+            color: ex.Color.fromHex(zone.color).desaturate(0.5).lighten(0.3),
+            collisionType: ex.CollisionType.PreventCollision // No collision for zone visuals
         })
         zoneActor.z = -90
         this.add(zoneActor)
@@ -121,7 +124,8 @@ export class VillageScene extends ex.Scene {
                 anchor: ex.Vector.Half,
                 width: structure.type === 'house' ? 48 : 24,
                 height: structure.type === 'house' ? 48 : 24,
-                color: this.getStructureColor(structure.type)
+                color: this.getStructureColor(structure.type),
+                collisionType: ex.CollisionType.PreventCollision // No collision for structures
             })
 
             // Add label for signs
@@ -165,12 +169,31 @@ export class VillageScene extends ex.Scene {
     }
 
     /**
-     * Spawn villagers in the village
+     * Spawn villagers in batches asynchronously.
+     * Call this after the scene is initialized to load villagers in the background.
+     * @param batchSize Number of villagers to spawn per batch (default 5)
+     * @param delayMs Delay between batches in milliseconds (default 50)
      */
-    private spawnVillagers(): void {
-        for (const villagerData of this.villageData.villagers) {
-            this.addVillager(villagerData)
+    async spawnVillagersInBatches(batchSize = 5, delayMs = 50): Promise<void> {
+        const villagersToSpawn = this.villageData.villagers
+        const totalVillagers = villagersToSpawn.length
+
+        log(`Starting deferred villager loading: ${totalVillagers} villagers`, 'debug')
+
+        for (let i = 0; i < totalVillagers; i += batchSize) {
+            const batch = villagersToSpawn.slice(i, i + batchSize)
+
+            for (const villagerData of batch) {
+                this.addVillager(villagerData)
+            }
+
+            // Yield to the event loop between batches
+            if (i + batchSize < totalVillagers) {
+                await new Promise((resolve) => setTimeout(resolve, delayMs))
+            }
         }
+
+        log(`Finished loading ${this.villagers.size} villagers`, 'debug')
     }
 
     /**

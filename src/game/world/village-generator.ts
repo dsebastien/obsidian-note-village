@@ -133,18 +133,23 @@ export class VillageGenerator {
     }
 
     /**
-     * Generate villagers from notes
+     * Generate villagers from notes (limited by maxVillagers)
      */
     private generateVillagers(
         zones: Zone[],
         notesByTag: Map<string, ScannedNote[]>
     ): VillagerData[] {
         const villagers: VillagerData[] = []
+        const maxVillagers = this.options.maxVillagers
 
         for (const zone of zones) {
+            if (villagers.length >= maxVillagers) break
+
             const notes = notesByTag.get(zone.tag) ?? []
 
             for (const note of notes) {
+                if (villagers.length >= maxVillagers) break
+
                 const position = this.random.nextPointInWedge(
                     0,
                     0,
@@ -171,6 +176,7 @@ export class VillageGenerator {
             }
         }
 
+        log(`Generated ${villagers.length} villagers (max: ${maxVillagers})`, 'debug')
         return villagers
     }
 

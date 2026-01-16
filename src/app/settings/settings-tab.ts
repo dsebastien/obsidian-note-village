@@ -51,6 +51,19 @@ export class NoteVillageSettingTab extends PluginSettingTab {
             )
 
         new Setting(containerEl)
+            .setName('Maximum villagers')
+            .setDesc('Maximum number of villagers to display in the village (10-500)')
+            .addSlider((slider) =>
+                slider
+                    .setLimits(10, 500, 10)
+                    .setValue(this.plugin.settings.maxVillagers)
+                    .setDynamicTooltip()
+                    .onChange(async (value) => {
+                        await this.plugin.updateSetting('maxVillagers', value)
+                    })
+            )
+
+        new Setting(containerEl)
             .setName('Regenerate village')
             .setDesc('Regenerate the village layout with current settings')
             .addButton((button) =>

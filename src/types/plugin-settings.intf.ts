@@ -15,6 +15,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     enabled: true,
     villageSeed: '',
     topTagCount: 10,
+    maxVillagers: 100,
     renderQuality: RenderQuality.HIGH,
     anthropicApiKey: '',
     aiModel: AIModel.CLAUDE_SONNET_4,
