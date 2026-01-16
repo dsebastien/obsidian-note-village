@@ -1,6 +1,7 @@
 import * as ex from 'excalibur'
 import { VillageScene } from './scenes/village-scene'
 import { SpriteManager } from './graphics/sprite-manager'
+import { InputManager } from './input/input-manager'
 import type { VillageData } from '#types/village-data.intf'
 import { log } from '../utils/log'
 import { RenderQuality } from '#types/render-quality.intf'
@@ -14,6 +15,7 @@ export class VillageGame {
     private villageScene: VillageScene | null = null
     private isRunning = false
     private spriteManager: SpriteManager
+    private inputManager: InputManager
 
     constructor(canvas: HTMLCanvasElement, quality: RenderQuality = RenderQuality.HIGH) {
         // Quality settings for optimal performance
@@ -35,6 +37,9 @@ export class VillageGame {
 
         // Get sprite manager singleton
         this.spriteManager = SpriteManager.getInstance()
+
+        // Create input manager for focus-aware keyboard handling
+        this.inputManager = new InputManager(canvas)
 
         log('VillageGame engine created', 'debug')
     }
@@ -69,8 +74,8 @@ export class VillageGame {
         await this.spriteManager.initialize()
         log('Sprites loaded', 'debug')
 
-        // Create scene with village data
-        this.villageScene = new VillageScene(villageData)
+        // Create scene with village data and input manager
+        this.villageScene = new VillageScene(villageData, this.inputManager)
         this.engine.add('village', this.villageScene)
 
         // Start engine
@@ -113,11 +118,19 @@ export class VillageGame {
     }
 
     /**
+     * Get the input manager
+     */
+    getInputManager(): InputManager {
+        return this.inputManager
+    }
+
+    /**
      * Stop and destroy the game
      */
     destroy(): void {
         log('Destroying village game', 'debug')
         this.isRunning = false
+        this.inputManager.destroy()
         this.engine.stop()
         this.spriteManager.destroy()
     }

@@ -1,10 +1,12 @@
 import * as ex from 'excalibur'
 import { InteractableComponent } from '../components/interactable.component'
 import { Player } from '../actors/player.actor'
+import type { InputManager } from '../input/input-manager'
 
 /**
  * System that handles player-actor interactions.
  * Tracks proximity and handles click/key interactions.
+ * Uses focus-aware input handling.
  */
 export class InteractionSystem extends ex.System {
     systemType = ex.SystemType.Update
@@ -13,10 +15,12 @@ export class InteractionSystem extends ex.System {
     private player: Player | null = null
     private nearestInteractable: ex.Actor | null = null
     private scene: ex.Scene | null = null
+    private inputManager: InputManager
 
-    constructor(world: ex.World) {
+    constructor(world: ex.World, inputManager: InputManager) {
         super()
         this.query = world.query([ex.TransformComponent, InteractableComponent])
+        this.inputManager = inputManager
     }
 
     override initialize(_world: ex.World, scene: ex.Scene): void {
@@ -31,16 +35,15 @@ export class InteractionSystem extends ex.System {
         }
 
         // Set up keyboard interaction (C key for conversation)
-        if (scene.engine) {
-            scene.engine.input.keyboard.on('press', (evt) => {
-                if (evt.key === ex.Keys.C && this.nearestInteractable) {
-                    const interactable = this.nearestInteractable.get(InteractableComponent)
-                    if (interactable?.inRange) {
-                        interactable.trigger(this.nearestInteractable)
-                    }
+        // Uses focus-aware InputManager
+        this.inputManager.onKeyPress(ex.Keys.C, () => {
+            if (this.nearestInteractable) {
+                const interactable = this.nearestInteractable.get(InteractableComponent)
+                if (interactable?.inRange) {
+                    interactable.trigger(this.nearestInteractable)
                 }
-            })
-        }
+            }
+        })
     }
 
     override update(_delta: number): void {

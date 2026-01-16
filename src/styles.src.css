@@ -245,3 +245,20 @@
 .note-village-add-folder .setting-item-control {
     @apply flex gap-2;
 }
+
+/* ========================================
+   MINIMAP
+   ======================================== */
+
+.note-village-minimap {
+    @apply absolute;
+    left: 16px;
+    top: 16px;
+    z-index: 100;
+    pointer-events: none;
+}
+
+.note-village-minimap-canvas {
+    @apply block;
+    border-radius: 8px;
+}

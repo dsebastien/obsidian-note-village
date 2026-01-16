@@ -5,6 +5,7 @@ import { VillageGenerator } from '../game/world/village-generator'
 import type { Villager } from '../game/actors/villager.actor'
 import { ChatPanel } from './chat/chat-panel'
 import { SpeechBubble } from './chat/speech-bubble'
+import { Minimap } from './minimap/minimap'
 import { ConversationManager } from '../ai/conversation-manager'
 import { ConversationStorage } from '../ai/conversation-storage'
 import type { NoteVillagePlugin } from '../app/plugin'
@@ -20,6 +21,7 @@ export class VillageView extends ItemView {
     private resizeObserver: ResizeObserver | null = null
     private chatPanel: ChatPanel | null = null
     private speechBubble: SpeechBubble | null = null
+    private minimap: Minimap | null = null
     private currentVillager: Villager | null = null
     private conversationManager: ConversationManager | null = null
     private conversationStorage: ConversationStorage | null = null
@@ -66,6 +68,7 @@ export class VillageView extends ItemView {
         // Create UI components
         this.chatPanel = new ChatPanel(container as HTMLElement)
         this.speechBubble = new SpeechBubble(container as HTMLElement)
+        this.minimap = new Minimap(container as HTMLElement)
 
         // Initialize AI components
         this.conversationManager = new ConversationManager(
@@ -98,6 +101,11 @@ export class VillageView extends ItemView {
             scene.setVillagerInteractionCallback((villager) => {
                 this.handleVillagerInteraction(villager)
             })
+
+            // Start minimap
+            if (this.minimap) {
+                this.minimap.start(scene)
+            }
 
             // Load villagers in the background after game is ready
             // This prevents blocking the initial render
@@ -133,6 +141,10 @@ export class VillageView extends ItemView {
         if (this.speechBubble) {
             this.speechBubble.destroy()
             this.speechBubble = null
+        }
+        if (this.minimap) {
+            this.minimap.destroy()
+            this.minimap = null
         }
 
         // Destroy game
@@ -368,6 +380,11 @@ export class VillageView extends ItemView {
             scene.setVillagerInteractionCallback((villager) => {
                 this.handleVillagerInteraction(villager)
             })
+
+            // Restart minimap with new scene
+            if (this.minimap) {
+                this.minimap.start(scene)
+            }
 
             // Load villagers in the background
             scene.spawnVillagersInBatches(10)

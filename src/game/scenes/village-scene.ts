@@ -4,6 +4,7 @@ import { Villager } from '../actors/villager.actor'
 import { WanderSystem } from '../systems/wander.system'
 import { InteractionSystem } from '../systems/interaction.system'
 import { SpriteManager } from '../graphics/sprite-manager'
+import type { InputManager } from '../input/input-manager'
 import type { VillageData } from '#types/village-data.intf'
 import type { VillagerData } from '#types/villager-data.intf'
 import type { Zone } from '#types/zone.intf'
@@ -23,10 +24,15 @@ export class VillageScene extends ex.Scene {
     private interactionSystem: InteractionSystem | null = null
     private onVillagerInteract: VillagerInteractionCallback | null = null
     private spriteManager: SpriteManager
+    private inputManager: InputManager
 
-    constructor(private villageData: VillageData) {
+    constructor(
+        private villageData: VillageData,
+        inputManager: InputManager
+    ) {
         super()
         this.spriteManager = SpriteManager.getInstance()
+        this.inputManager = inputManager
     }
 
     override onInitialize(_engine: ex.Engine): void {
@@ -34,7 +40,7 @@ export class VillageScene extends ex.Scene {
 
         // Add ECS systems
         const wanderSystem = new WanderSystem(this.world)
-        this.interactionSystem = new InteractionSystem(this.world)
+        this.interactionSystem = new InteractionSystem(this.world, this.inputManager)
         this.world.add(wanderSystem)
         this.world.add(this.interactionSystem)
 
@@ -47,8 +53,8 @@ export class VillageScene extends ex.Scene {
         // NOTE: Villagers are NOT spawned here - they are loaded asynchronously
         // via spawnVillagersInBatches() after the scene is ready
 
-        // Create and add player
-        this.player = new Player(toExVector(this.villageData.spawnPoint))
+        // Create and add player with focus-aware input
+        this.player = new Player(toExVector(this.villageData.spawnPoint), this.inputManager)
         this.add(this.player)
 
         // Camera follows player with smooth tracking
