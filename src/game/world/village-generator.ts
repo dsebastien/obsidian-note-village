@@ -222,50 +222,91 @@ export class VillageGenerator {
     }
 
     /**
-     * Generate villagers from notes (limited by maxVillagers)
+     * Generate villagers from notes using weighted round-robin distribution.
+     * Distributes villagers proportionally across zones based on note count,
+     * prioritizing least recently updated notes.
      */
     private generateVillagers(
         zones: Zone[],
         notesByTag: Map<string, ScannedNote[]>
     ): VillagerData[] {
-        const villagers: VillagerData[] = []
         const maxVillagers = this.options.maxVillagers
 
-        for (const zone of zones) {
-            if (villagers.length >= maxVillagers) break
-
+        // Phase 1: Prepare zone buckets with sorted notes
+        // Sort by "updated" timestamp if available, otherwise by "modifiedTime" (oldest first)
+        const zoneBuckets = zones.map((zone) => {
             const notes = notesByTag.get(zone.tag) ?? []
+            const sortedNotes = [...notes].sort((a, b) => {
+                const timeA = a.updated ?? a.modifiedTime
+                const timeB = b.updated ?? b.modifiedTime
+                return timeA - timeB // Ascending: oldest/least recently modified first
+            })
+            return { zone, notes: sortedNotes, allocated: 0 }
+        })
 
-            for (const note of notes) {
-                if (villagers.length >= maxVillagers) break
+        // Phase 2 & 3: Calculate proportional allocations
+        const totalNotes = zoneBuckets.reduce((sum, b) => sum + b.notes.length, 0)
+        if (totalNotes === 0) {
+            log('No notes found for any zone', 'debug')
+            return []
+        }
+
+        // Initial proportional allocation (capped at available notes)
+        for (const bucket of zoneBuckets) {
+            const proportion = bucket.notes.length / totalNotes
+            const target = Math.floor(proportion * maxVillagers)
+            bucket.allocated = Math.min(target, bucket.notes.length)
+        }
+
+        // Phase 4: Redistribute remaining capacity using round-robin
+        let remaining = maxVillagers - zoneBuckets.reduce((sum, b) => sum + b.allocated, 0)
+
+        while (remaining > 0) {
+            const bucketsWithCapacity = zoneBuckets.filter((b) => b.allocated < b.notes.length)
+            if (bucketsWithCapacity.length === 0) break
+
+            for (const bucket of bucketsWithCapacity) {
+                if (remaining <= 0) break
+                bucket.allocated++
+                remaining--
+            }
+        }
+
+        // Phase 5: Create villagers from allocated notes
+        const villagers: VillagerData[] = []
+        for (const bucket of zoneBuckets) {
+            for (let i = 0; i < bucket.allocated; i++) {
+                const note = bucket.notes[i]
+                if (!note) continue
 
                 // Place villager within the rectangular zone with padding
                 const position = this.random.nextPointInRect(
-                    zone.x,
-                    zone.y,
-                    zone.width,
-                    zone.height,
+                    bucket.zone.x,
+                    bucket.zone.y,
+                    bucket.zone.width,
+                    bucket.zone.height,
                     30 // padding from edges
                 )
 
-                const villager: VillagerData = {
+                villagers.push({
                     id: `villager-${note.path}`,
                     notePath: note.path,
                     noteName: note.name,
                     noteLength: note.contentLength,
                     homePosition: position,
-                    zoneId: zone.id,
+                    zoneId: bucket.zone.id,
                     appearance: {
                         spriteIndex: this.random.nextInt(0, 7),
                         scale: 1
                     }
-                }
-
-                villagers.push(villager)
+                })
             }
         }
 
-        log(`Generated ${villagers.length} villagers (max: ${maxVillagers})`, 'debug')
+        log(
+            `Generated ${villagers.length} villagers across ${zones.length} zones (max: ${maxVillagers})`,
+            'debug'
+        )
         return villagers
     }
 

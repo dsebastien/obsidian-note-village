@@ -119,6 +119,9 @@ export class NoteScanner {
         const primaryTag = matchingTags[0]
         if (!primaryTag) return null
 
+        // Extract optional "updated" timestamp from frontmatter
+        const updated = this.getUpdatedTimestamp(metadata)
+
         return {
             file,
             path: file.path,
@@ -127,7 +130,8 @@ export class NoteScanner {
             primaryTag,
             contentLength: file.stat.size,
             createdTime: file.stat.ctime,
-            modifiedTime: file.stat.mtime
+            modifiedTime: file.stat.mtime,
+            updated
         }
     }
 
@@ -139,6 +143,9 @@ export class NoteScanner {
         const fileTags = metadata ? this.getFileTags(metadata) : []
         const normalizedFileTags = fileTags.map((t) => this.normalizeTag(t))
 
+        // Extract optional "updated" timestamp from frontmatter
+        const updated = metadata ? this.getUpdatedTimestamp(metadata) : undefined
+
         return {
             file,
             path: file.path,
@@ -147,7 +154,8 @@ export class NoteScanner {
             primaryTag: normalizedFileTags[0] ?? 'untagged',
             contentLength: file.stat.size,
             createdTime: file.stat.ctime,
-            modifiedTime: file.stat.mtime
+            modifiedTime: file.stat.mtime,
+            updated
         }
     }
 
@@ -203,6 +211,38 @@ export class NoteScanner {
      */
     private normalizeTag(tag: string): string {
         return tag.replace(/^#/, '').toLowerCase()
+    }
+
+    /**
+     * Extract the "updated" timestamp from frontmatter if present.
+     * Supports both ISO date strings and numeric timestamps.
+     */
+    private getUpdatedTimestamp(metadata: CachedMetadata): number | undefined {
+        const frontmatter = metadata.frontmatter
+        if (!frontmatter) return undefined
+
+        const updatedValue = frontmatter['updated']
+        if (updatedValue === undefined || updatedValue === null) return undefined
+
+        // If it's already a number, use it directly
+        if (typeof updatedValue === 'number') {
+            return updatedValue
+        }
+
+        // If it's a string, try to parse as date
+        if (typeof updatedValue === 'string') {
+            const parsed = Date.parse(updatedValue)
+            if (!isNaN(parsed)) {
+                return parsed
+            }
+        }
+
+        // If it's a Date object (from YAML parsing)
+        if (updatedValue instanceof Date) {
+            return updatedValue.getTime()
+        }
+
+        return undefined
     }
 
     /**

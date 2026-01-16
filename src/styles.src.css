@@ -14,7 +14,12 @@
    ======================================== */
 
 .note-village-container {
-    @apply relative w-full h-full;
+    @apply flex flex-row w-full h-full;
+}
+
+.note-village-game-area {
+    @apply flex-1 relative overflow-hidden;
+    min-width: 300px;
 }
 
 .note-village-canvas {
@@ -26,23 +31,28 @@
    ======================================== */
 
 .note-village-chat-panel {
-    @apply absolute flex flex-col;
-    right: 16px;
-    top: 16px;
+    @apply flex flex-col flex-shrink-0;
     width: 320px;
-    max-height: 60%;
-    border-radius: var(--radius-s);
+    height: 100%;
+    max-height: 100%;
     background-color: var(--background-primary);
-    border: 1px solid var(--background-modifier-border);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    z-index: 100;
+    border-left: 1px solid var(--background-modifier-border);
+    transition:
+        width 0.3s ease,
+        opacity 0.3s ease;
+    overflow: hidden;
+}
+
+.note-village-chat-panel.note-village-chat-panel-hidden {
+    width: 0;
+    opacity: 0;
+    border-left-width: 0;
 }
 
 .note-village-chat-header {
-    @apply flex items-center justify-between px-4 py-3;
+    @apply flex items-center justify-between px-4 py-3 flex-shrink-0;
     border-bottom: 1px solid var(--background-modifier-border);
     background-color: var(--background-secondary);
-    border-radius: var(--radius-s) var(--radius-s) 0 0;
 }
 
 .note-village-chat-title {
@@ -67,8 +77,7 @@
 
 .note-village-chat-messages {
     @apply flex-1 overflow-y-auto px-4 py-3;
-    min-height: 150px;
-    max-height: 300px;
+    min-height: 0;
 }
 
 .note-village-chat-empty {
@@ -108,7 +117,7 @@
 }
 
 .note-village-chat-input-container {
-    @apply flex gap-2 p-3;
+    @apply flex gap-2 p-3 flex-shrink-0;
     border-top: 1px solid var(--background-modifier-border);
 }
 

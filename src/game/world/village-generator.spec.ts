@@ -38,7 +38,13 @@ mock.module('../../vault/note-scanner', () => ({
 const { VillageGenerator } = await import('./village-generator')
 
 // Helper to create mock ScannedNote
-function createMockNote(name: string, tag: string, size = 1000): ScannedNote {
+function createMockNote(
+    name: string,
+    tag: string,
+    size = 1000,
+    modifiedTime?: number,
+    updated?: number
+): ScannedNote {
     return {
         file: { path: `notes/${name}.md` } as TFile,
         path: `notes/${name}.md`,
@@ -47,7 +53,8 @@ function createMockNote(name: string, tag: string, size = 1000): ScannedNote {
         primaryTag: tag,
         contentLength: size,
         createdTime: Date.now(),
-        modifiedTime: Date.now()
+        modifiedTime: modifiedTime ?? Date.now(),
+        updated
     }
 }
 
@@ -310,6 +317,250 @@ describe('VillageGenerator', () => {
             expect(data.villagers[0]?.appearance.spriteIndex).toBeGreaterThanOrEqual(0)
             expect(data.villagers[0]?.appearance.spriteIndex).toBeLessThanOrEqual(7)
             expect(data.villagers[0]?.appearance.scale).toBe(1)
+        })
+    })
+
+    describe('villager distribution (weighted round-robin)', () => {
+        test('should distribute villagers proportionally across zones', () => {
+            // Zone1 has 10 notes, Zone2 has 5 notes, Zone3 has 5 notes
+            // With maxVillagers=10 and total 20 notes:
+            // Zone1 should get ~50% (5), Zone2 ~25% (2-3), Zone3 ~25% (2-3)
+            mockTopTags.push(
+                { tag: 'zone1', count: 10 },
+                { tag: 'zone2', count: 5 },
+                { tag: 'zone3', count: 5 }
+            )
+            mockNotesByTag.set(
+                'zone1',
+                Array.from({ length: 10 }, (_, i) => createMockNote(`z1-note${i}`, 'zone1'))
+            )
+            mockNotesByTag.set(
+                'zone2',
+                Array.from({ length: 5 }, (_, i) => createMockNote(`z2-note${i}`, 'zone2'))
+            )
+            mockNotesByTag.set(
+                'zone3',
+                Array.from({ length: 5 }, (_, i) => createMockNote(`z3-note${i}`, 'zone3'))
+            )
+
+            const generator = new VillageGenerator(mockApp, { seed: 'test', maxVillagers: 10 })
+            const data = generator.generate()
+
+            const zone1 = data.zones.find((z) => z.tag === 'zone1')
+            const zone2 = data.zones.find((z) => z.tag === 'zone2')
+            const zone3 = data.zones.find((z) => z.tag === 'zone3')
+
+            const villagersInZone1 = data.villagers.filter((v) => v.zoneId === zone1?.id)
+            const villagersInZone2 = data.villagers.filter((v) => v.zoneId === zone2?.id)
+            const villagersInZone3 = data.villagers.filter((v) => v.zoneId === zone3?.id)
+
+            expect(data.villagers.length).toBe(10)
+            // Zone1 should have more villagers than Zone2 and Zone3
+            expect(villagersInZone1.length).toBeGreaterThan(villagersInZone2.length)
+            expect(villagersInZone1.length).toBeGreaterThan(villagersInZone3.length)
+            // All zones should have at least some villagers
+            expect(villagersInZone1.length).toBeGreaterThan(0)
+            expect(villagersInZone2.length).toBeGreaterThan(0)
+            expect(villagersInZone3.length).toBeGreaterThan(0)
+        })
+
+        test('should prioritize older notes (by modifiedTime when updated is absent)', () => {
+            const oldTime = Date.now() - 1000000
+            const newTime = Date.now()
+
+            mockTopTags.push({ tag: 'test', count: 20 })
+            // Create 20 notes with different modification times
+            // Only the 10 oldest should become villagers
+            const notes = []
+            for (let i = 0; i < 10; i++) {
+                notes.push(createMockNote(`oldest${i}`, 'test', 1000, oldTime - (10 - i) * 1000))
+            }
+            for (let i = 0; i < 10; i++) {
+                notes.push(createMockNote(`newest${i}`, 'test', 1000, newTime + i * 1000))
+            }
+            mockNotesByTag.set('test', notes)
+
+            const generator = new VillageGenerator(mockApp, { seed: 'test', maxVillagers: 10 })
+            const data = generator.generate()
+
+            expect(data.villagers.length).toBe(10)
+            const villagerNames = data.villagers.map((v) => v.noteName)
+            // Should have the oldest notes
+            for (let i = 0; i < 10; i++) {
+                expect(villagerNames).toContain(`oldest${i}`)
+            }
+            // Should NOT have the newest notes
+            for (let i = 0; i < 10; i++) {
+                expect(villagerNames).not.toContain(`newest${i}`)
+            }
+        })
+
+        test('should use updated property over modifiedTime when available', () => {
+            const baseTime = Date.now()
+
+            mockTopTags.push({ tag: 'test', count: 20 })
+            // Create notes with various updated/modifiedTime combinations
+            // Notes with older "updated" should be prioritized
+            const notes = [
+                // These should be selected (old updated values)
+                createMockNote('veryOldUpdated', 'test', 1000, baseTime, baseTime - 50000), // new mtime, very old updated
+                createMockNote('oldUpdated1', 'test', 1000, baseTime, baseTime - 40000),
+                createMockNote('oldUpdated2', 'test', 1000, baseTime, baseTime - 35000),
+                createMockNote('oldUpdated3', 'test', 1000, baseTime, baseTime - 30000),
+                createMockNote('oldUpdated4', 'test', 1000, baseTime, baseTime - 25000),
+                createMockNote('noUpdated1', 'test', 1000, baseTime - 20000), // falls back to mtime
+                createMockNote('noUpdated2', 'test', 1000, baseTime - 18000),
+                createMockNote('noUpdated3', 'test', 1000, baseTime - 16000),
+                createMockNote('noUpdated4', 'test', 1000, baseTime - 14000),
+                createMockNote('noUpdated5', 'test', 1000, baseTime - 12000),
+                // These should NOT be selected (recent updated values)
+                createMockNote('recentUpdated1', 'test', 1000, baseTime - 50000, baseTime - 5000), // old mtime, recent updated
+                createMockNote('recentUpdated2', 'test', 1000, baseTime - 50000, baseTime - 4000),
+                createMockNote('recentUpdated3', 'test', 1000, baseTime - 50000, baseTime - 3000),
+                createMockNote('recentUpdated4', 'test', 1000, baseTime - 50000, baseTime - 2000),
+                createMockNote('recentUpdated5', 'test', 1000, baseTime - 50000, baseTime - 1000),
+                createMockNote('noUpdatedRecent1', 'test', 1000, baseTime - 1000),
+                createMockNote('noUpdatedRecent2', 'test', 1000, baseTime - 800),
+                createMockNote('noUpdatedRecent3', 'test', 1000, baseTime - 600),
+                createMockNote('noUpdatedRecent4', 'test', 1000, baseTime - 400),
+                createMockNote('noUpdatedRecent5', 'test', 1000, baseTime - 200)
+            ]
+            mockNotesByTag.set('test', notes)
+
+            const generator = new VillageGenerator(mockApp, { seed: 'test', maxVillagers: 10 })
+            const data = generator.generate()
+
+            expect(data.villagers.length).toBe(10)
+            const villagerNames = data.villagers.map((v) => v.noteName)
+            // Should prioritize by updated, falling back to modifiedTime
+            // veryOldUpdated has oldest updated, then oldUpdated1-4, then noUpdated1-5
+            expect(villagerNames).toContain('veryOldUpdated')
+            expect(villagerNames).toContain('oldUpdated1')
+            // Should NOT have recentUpdated notes despite their old mtime
+            expect(villagerNames).not.toContain('recentUpdated1')
+            expect(villagerNames).not.toContain('recentUpdated5')
+        })
+
+        test('should redistribute remaining capacity to zones with available notes', () => {
+            // Zone1 has only 3 notes, Zone2 has 20 notes
+            // With maxVillagers=12, Zone1's proportional share is ~2 but it has 3 notes
+            // Zone2's proportional share is ~10
+            mockTopTags.push({ tag: 'zone1', count: 3 }, { tag: 'zone2', count: 20 })
+            mockNotesByTag.set('zone1', [
+                createMockNote('z1-note1', 'zone1'),
+                createMockNote('z1-note2', 'zone1'),
+                createMockNote('z1-note3', 'zone1')
+            ])
+            mockNotesByTag.set(
+                'zone2',
+                Array.from({ length: 20 }, (_, i) => createMockNote(`z2-note${i}`, 'zone2'))
+            )
+
+            const generator = new VillageGenerator(mockApp, { seed: 'test', maxVillagers: 12 })
+            const data = generator.generate()
+
+            const zone1 = data.zones.find((z) => z.tag === 'zone1')
+            const zone2 = data.zones.find((z) => z.tag === 'zone2')
+
+            const villagersInZone1 = data.villagers.filter((v) => v.zoneId === zone1?.id)
+            const villagersInZone2 = data.villagers.filter((v) => v.zoneId === zone2?.id)
+
+            expect(data.villagers.length).toBe(12)
+            // Both zones should have villagers
+            expect(villagersInZone1.length).toBeGreaterThan(0)
+            expect(villagersInZone2.length).toBeGreaterThan(0)
+            // Zone2 has more notes, so it gets more villagers
+            expect(villagersInZone2.length).toBeGreaterThan(villagersInZone1.length)
+        })
+
+        test('should handle zone with zero notes', () => {
+            mockTopTags.push(
+                { tag: 'hasNotes', count: 15 },
+                { tag: 'emptyZone', count: 0 } // Zone with no notes
+            )
+            mockNotesByTag.set(
+                'hasNotes',
+                Array.from({ length: 15 }, (_, i) => createMockNote(`note${i}`, 'hasNotes'))
+            )
+            mockNotesByTag.set('emptyZone', [])
+
+            const generator = new VillageGenerator(mockApp, { seed: 'test', maxVillagers: 10 })
+            const data = generator.generate()
+
+            const emptyZone = data.zones.find((z) => z.tag === 'emptyZone')
+            const villagersInEmptyZone = data.villagers.filter((v) => v.zoneId === emptyZone?.id)
+
+            // Empty zone should have 0 villagers
+            expect(villagersInEmptyZone.length).toBe(0)
+            // All villagers should be in the other zone
+            expect(data.villagers.length).toBe(10)
+        })
+
+        test('should create all villagers when maxVillagers exceeds total notes', () => {
+            mockTopTags.push({ tag: 'zone1', count: 2 }, { tag: 'zone2', count: 3 })
+            mockNotesByTag.set('zone1', [
+                createMockNote('z1-note1', 'zone1'),
+                createMockNote('z1-note2', 'zone1')
+            ])
+            mockNotesByTag.set('zone2', [
+                createMockNote('z2-note1', 'zone2'),
+                createMockNote('z2-note2', 'zone2'),
+                createMockNote('z2-note3', 'zone2')
+            ])
+
+            const generator = new VillageGenerator(mockApp, { seed: 'test', maxVillagers: 100 })
+            const data = generator.generate()
+
+            // All 5 notes become villagers
+            expect(data.villagers.length).toBe(5)
+        })
+
+        test('should return empty array when no notes exist', () => {
+            mockTopTags.push({ tag: 'empty', count: 0 })
+            mockNotesByTag.set('empty', [])
+
+            const generator = new VillageGenerator(mockApp, { seed: 'test', maxVillagers: 10 })
+            const data = generator.generate()
+
+            expect(data.villagers.length).toBe(0)
+        })
+
+        test('should distribute evenly when all zones have same proportion', () => {
+            // 3 zones with equal notes
+            mockTopTags.push(
+                { tag: 'zone1', count: 10 },
+                { tag: 'zone2', count: 10 },
+                { tag: 'zone3', count: 10 }
+            )
+            mockNotesByTag.set(
+                'zone1',
+                Array.from({ length: 10 }, (_, i) => createMockNote(`z1-note${i}`, 'zone1'))
+            )
+            mockNotesByTag.set(
+                'zone2',
+                Array.from({ length: 10 }, (_, i) => createMockNote(`z2-note${i}`, 'zone2'))
+            )
+            mockNotesByTag.set(
+                'zone3',
+                Array.from({ length: 10 }, (_, i) => createMockNote(`z3-note${i}`, 'zone3'))
+            )
+
+            const generator = new VillageGenerator(mockApp, { seed: 'test', maxVillagers: 12 })
+            const data = generator.generate()
+
+            const zone1 = data.zones.find((z) => z.tag === 'zone1')
+            const zone2 = data.zones.find((z) => z.tag === 'zone2')
+            const zone3 = data.zones.find((z) => z.tag === 'zone3')
+
+            const villagersInZone1 = data.villagers.filter((v) => v.zoneId === zone1?.id)
+            const villagersInZone2 = data.villagers.filter((v) => v.zoneId === zone2?.id)
+            const villagersInZone3 = data.villagers.filter((v) => v.zoneId === zone3?.id)
+
+            expect(data.villagers.length).toBe(12)
+            // Each zone should have exactly 4 villagers (equal distribution)
+            expect(villagersInZone1.length).toBe(4)
+            expect(villagersInZone2.length).toBe(4)
+            expect(villagersInZone3.length).toBe(4)
         })
     })
 

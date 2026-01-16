@@ -18,6 +18,7 @@ import { log } from '../utils/log'
 export class VillageView extends ItemView {
     private game: VillageGame | null = null
     private canvas: HTMLCanvasElement | null = null
+    private gameArea: HTMLElement | null = null
     private resizeObserver: ResizeObserver | null = null
     private chatPanel: ChatPanel | null = null
     private speechBubble: SpeechBubble | null = null
@@ -57,18 +58,25 @@ export class VillageView extends ItemView {
         container.empty()
         container.addClass('note-village-container')
 
-        // Create canvas element
-        this.canvas = container.createEl('canvas', {
+        // Create game area wrapper (holds canvas, minimap, speech bubble)
+        this.gameArea = (container as HTMLElement).createDiv({
+            cls: 'note-village-game-area'
+        })
+
+        // Create canvas element inside game area
+        this.canvas = this.gameArea.createEl('canvas', {
             cls: 'note-village-canvas'
         })
 
         // Set canvas size
         this.updateCanvasSize()
 
-        // Create UI components
+        // Create UI components - minimap and speech bubble in game area
+        this.speechBubble = new SpeechBubble(this.gameArea)
+        this.minimap = new Minimap(this.gameArea)
+
+        // Chat panel is direct child of container (sidebar)
         this.chatPanel = new ChatPanel(container as HTMLElement)
-        this.speechBubble = new SpeechBubble(container as HTMLElement)
-        this.minimap = new Minimap(container as HTMLElement)
 
         // Initialize AI components
         this.conversationManager = new ConversationManager(
@@ -86,6 +94,9 @@ export class VillageView extends ItemView {
         })
         this.chatPanel.setOnCloseCallback(() => {
             this.handleChatClose()
+        })
+        this.chatPanel.setOnOpenCallback(() => {
+            this.handleSidebarStateChange()
         })
 
         // Create game instance
@@ -112,11 +123,11 @@ export class VillageView extends ItemView {
             scene.spawnVillagersInBatches(10)
         }
 
-        // Set up resize observer
+        // Set up resize observer on game area (not container)
         this.resizeObserver = new ResizeObserver(() => {
             this.handleResize()
         })
-        this.resizeObserver.observe(container as Element)
+        this.resizeObserver.observe(this.gameArea)
 
         log('VillageView opened', 'debug')
     }
@@ -154,6 +165,7 @@ export class VillageView extends ItemView {
         }
 
         this.canvas = null
+        this.gameArea = null
         this.currentVillager = null
         this.conversationManager = null
         this.conversationStorage = null
@@ -207,6 +219,18 @@ export class VillageView extends ItemView {
         await this.saveCurrentConversation()
         this.speechBubble?.hide()
         this.currentVillager = null
+        this.handleSidebarStateChange()
+    }
+
+    /**
+     * Handle sidebar state change (open/close)
+     * Triggers resize after CSS animation completes
+     */
+    private handleSidebarStateChange(): void {
+        // Wait for CSS animation to complete (300ms transition)
+        setTimeout(() => {
+            this.handleResize()
+        }, 350)
     }
 
     /**
@@ -273,16 +297,13 @@ export class VillageView extends ItemView {
     }
 
     /**
-     * Update canvas size to fill container.
+     * Update canvas size to fill game area.
      * Returns true if canvas has valid dimensions.
      */
     private updateCanvasSize(): boolean {
-        if (!this.canvas) return false
+        if (!this.canvas || !this.gameArea) return false
 
-        const container = this.containerEl.children[1]
-        if (!container) return false
-
-        const rect = container.getBoundingClientRect()
+        const rect = this.gameArea.getBoundingClientRect()
 
         // Ensure minimum size to prevent WebGL framebuffer errors
         const MIN_SIZE = 100

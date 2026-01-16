@@ -19,12 +19,15 @@ export class ChatPanel {
     private messages: ChatMessage[] = []
     private onSendMessage: SendMessageCallback | null = null
     private onClose: (() => void) | null = null
+    private onOpen: (() => void) | null = null
     private isLoading = false
+    private _isOpen = false
 
     constructor(parentEl: HTMLElement) {
-        // Create main container
-        this.container = parentEl.createDiv({ cls: 'note-village-chat-panel' })
-        this.container.style.display = 'none'
+        // Create main container - starts hidden
+        this.container = parentEl.createDiv({
+            cls: 'note-village-chat-panel note-village-chat-panel-hidden'
+        })
 
         // Header
         this.header = this.container.createDiv({ cls: 'note-village-chat-header' })
@@ -75,15 +78,24 @@ export class ChatPanel {
             titleEl.setText(`Chat with ${villager.getNoteName()}`)
         }
 
-        this.container.style.display = 'flex'
+        // Remove hidden class to trigger animation
+        this.container.removeClass('note-village-chat-panel-hidden')
+        this._isOpen = true
         this.textInput.focus()
+
+        // Notify parent to trigger resize after animation
+        if (this.onOpen) {
+            this.onOpen()
+        }
     }
 
     /**
      * Close chat panel
      */
     close(): void {
-        this.container.style.display = 'none'
+        // Add hidden class to trigger animation
+        this.container.addClass('note-village-chat-panel-hidden')
+        this._isOpen = false
         this.currentVillager = null
         this.messages = []
         if (this.onClose) {
@@ -95,7 +107,7 @@ export class ChatPanel {
      * Check if panel is open
      */
     isOpen(): boolean {
-        return this.container.style.display !== 'none'
+        return this._isOpen
     }
 
     /**
@@ -117,6 +129,13 @@ export class ChatPanel {
      */
     setOnCloseCallback(callback: () => void): void {
         this.onClose = callback
+    }
+
+    /**
+     * Set callback for open (used to notify parent for resize)
+     */
+    setOnOpenCallback(callback: () => void): void {
+        this.onOpen = callback
     }
 
     /**

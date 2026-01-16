@@ -12,5 +12,7 @@ export const ScannedNoteSchema = z.object({
     primaryTag: z.string(),
     contentLength: z.number().int().nonnegative(),
     createdTime: z.number(),
-    modifiedTime: z.number()
+    modifiedTime: z.number(),
+    /** Optional "updated" timestamp from frontmatter (milliseconds since epoch) */
+    updated: z.number().optional()
 })
