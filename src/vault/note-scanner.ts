@@ -6,7 +6,32 @@ import type { ScannedNote } from '#types/scanned-note.intf'
  * Scans vault for notes matching specified criteria
  */
 export class NoteScanner {
+    private excludedFolders: string[] = []
+
     constructor(private app: App) {}
+
+    /**
+     * Set folders to exclude from scanning
+     */
+    setExcludedFolders(folders: string[]): void {
+        this.excludedFolders = folders
+        log(`NoteScanner: Excluding folders: ${folders.join(', ')}`, 'debug')
+    }
+
+    /**
+     * Check if a file is in an excluded folder
+     */
+    private isExcluded(file: TFile): boolean {
+        if (this.excludedFolders.length === 0) return false
+
+        for (const folder of this.excludedFolders) {
+            // Check if file path starts with the excluded folder path
+            if (file.path.startsWith(folder + '/') || file.path === folder) {
+                return true
+            }
+        }
+        return false
+    }
 
     /**
      * Get all notes that have at least one of the specified tags
@@ -19,6 +44,9 @@ export class NoteScanner {
         const matchingNotes: ScannedNote[] = []
 
         for (const file of files) {
+            // Skip excluded folders
+            if (this.isExcluded(file)) continue
+
             const note = this.scanFile(file, normalizedTags)
             if (note) {
                 matchingNotes.push(note)
@@ -39,6 +67,9 @@ export class NoteScanner {
         const notes: ScannedNote[] = []
 
         for (const file of files) {
+            // Skip excluded folders
+            if (this.isExcluded(file)) continue
+
             const note = this.scanFileBasic(file)
             if (note) {
                 notes.push(note)

@@ -26,17 +26,17 @@ function createVillagerData(overrides: Partial<VillagerData> = {}): VillagerData
     }
 }
 
-// Helper to create mock zone
+// Helper to create mock zone (rectangular JRPG style)
 function createZone(overrides: Partial<Zone> = {}): Zone {
     return {
         id: 'zone-1',
         name: 'Test Zone',
         tag: 'test',
         color: '#808080',
-        startAngle: 0,
-        endAngle: Math.PI / 2,
-        innerRadius: 100,
-        outerRadius: 200,
+        x: 100,
+        y: 100,
+        width: 300,
+        height: 300,
         noteCount: 5,
         ...overrides
     }

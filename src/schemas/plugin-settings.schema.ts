@@ -12,6 +12,7 @@ export const PluginSettingsSchema = z.object({
     villageSeed: z.string().default(''),
     topTagCount: z.number().int().min(3).max(20).default(10),
     maxVillagers: z.number().int().min(10).max(500).default(100),
+    excludedFolders: z.array(z.string()).default([]),
     renderQuality: RenderQualitySchema.default(RenderQuality.HIGH),
     anthropicApiKey: z.string().default(''),
     aiModel: AIModelSchema.default(AIModel.CLAUDE_SONNET_4),

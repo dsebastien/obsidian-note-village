@@ -7,7 +7,32 @@ import type { TagAnalysisResult } from '#types/tag-analysis-result.intf'
  * Analyzes tags in the vault to determine zone distribution
  */
 export class TagAnalyzer {
+    private excludedFolders: string[] = []
+
     constructor(private app: App) {}
+
+    /**
+     * Set folders to exclude from analysis
+     */
+    setExcludedFolders(folders: string[]): void {
+        this.excludedFolders = folders
+        log(`TagAnalyzer: Excluding folders: ${folders.join(', ')}`, 'debug')
+    }
+
+    /**
+     * Check if a file is in an excluded folder
+     */
+    private isExcluded(file: TFile): boolean {
+        if (this.excludedFolders.length === 0) return false
+
+        for (const folder of this.excludedFolders) {
+            // Check if file path starts with the excluded folder path
+            if (file.path.startsWith(folder + '/') || file.path === folder) {
+                return true
+            }
+        }
+        return false
+    }
 
     /**
      * Analyze all tags in the vault and return counts sorted by frequency
@@ -18,8 +43,13 @@ export class TagAnalyzer {
         const tagCounts = new Map<string, number>()
         const files = this.app.vault.getMarkdownFiles()
         let totalTags = 0
+        let analyzedFiles = 0
 
         for (const file of files) {
+            // Skip excluded folders
+            if (this.isExcluded(file)) continue
+
+            analyzedFiles++
             const tags = this.getFileTags(file)
             for (const tag of tags) {
                 const normalizedTag = this.normalizeTag(tag)
@@ -34,11 +64,11 @@ export class TagAnalyzer {
             .map(([tag, count]) => ({ tag, count }))
             .sort((a, b) => b.count - a.count)
 
-        log(`Found ${sortedTags.length} unique tags in ${files.length} files`, 'debug')
+        log(`Found ${sortedTags.length} unique tags in ${analyzedFiles} files`, 'debug')
 
         return {
             tags: sortedTags,
-            totalNotes: files.length,
+            totalNotes: analyzedFiles,
             totalTags
         }
     }

@@ -30,10 +30,10 @@ export class InteractionSystem extends ex.System {
             }
         }
 
-        // Set up keyboard interaction (E key)
+        // Set up keyboard interaction (C key for conversation)
         if (scene.engine) {
             scene.engine.input.keyboard.on('press', (evt) => {
-                if (evt.key === ex.Keys.E && this.nearestInteractable) {
+                if (evt.key === ex.Keys.C && this.nearestInteractable) {
                     const interactable = this.nearestInteractable.get(InteractableComponent)
                     if (interactable?.inRange) {
                         interactable.trigger(this.nearestInteractable)

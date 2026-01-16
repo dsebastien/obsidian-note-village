@@ -134,6 +134,22 @@ export class SeededRandom {
     }
 
     /**
+     * Get a random point within a rectangle
+     */
+    nextPointInRect(
+        x: number,
+        y: number,
+        width: number,
+        height: number,
+        padding = 0
+    ): { x: number; y: number } {
+        return {
+            x: this.nextFloat(x + padding, x + width - padding),
+            y: this.nextFloat(y + padding, y + height - padding)
+        }
+    }
+
+    /**
      * Get current seed (for saving/restoring state)
      */
     getSeed(): number {

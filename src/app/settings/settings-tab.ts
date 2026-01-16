@@ -2,6 +2,7 @@ import { App, PluginSettingTab, Setting } from 'obsidian'
 import type { NoteVillagePlugin } from '../plugin'
 import { AIModel } from '#types/ai-model.intf'
 import { RenderQuality } from '#types/render-quality.intf'
+import { FolderSuggester } from '../../ui/folder-suggester'
 
 export class NoteVillageSettingTab extends PluginSettingTab {
     plugin: NoteVillagePlugin
@@ -63,6 +64,9 @@ export class NoteVillageSettingTab extends PluginSettingTab {
                     })
             )
 
+        // Excluded folders section
+        this.renderExcludedFolders(containerEl)
+
         new Setting(containerEl)
             .setName('Regenerate village')
             .setDesc('Regenerate the village layout with current settings')
@@ -71,6 +75,94 @@ export class NoteVillageSettingTab extends PluginSettingTab {
                     this.plugin.regenerateVillage()
                 })
             )
+    }
+
+    private renderExcludedFolders(containerEl: HTMLElement): void {
+        const excludedFolders = this.plugin.settings.excludedFolders
+
+        new Setting(containerEl)
+            .setName('Excluded folders')
+            .setDesc(
+                'Folders to exclude from village generation (notes in these folders will not become villagers)'
+            )
+
+        // Container for the excluded folders list
+        const foldersContainer = containerEl.createDiv({ cls: 'note-village-excluded-folders' })
+
+        // Render each excluded folder with a remove button
+        for (const folder of excludedFolders) {
+            this.renderExcludedFolder(foldersContainer, folder)
+        }
+
+        // Add new folder input
+        const addFolderSetting = new Setting(containerEl)
+            .setClass('note-village-add-folder')
+            .addText((text) => {
+                const inputEl = text.inputEl
+                inputEl.placeholder = 'Type folder path...'
+
+                // Add folder suggester
+                new FolderSuggester(this.app, inputEl)
+
+                return text
+            })
+            .addButton((button) =>
+                button
+                    .setButtonText('Add')
+                    .setCta()
+                    .onClick(async () => {
+                        const inputEl = addFolderSetting.controlEl.querySelector('input')
+                        if (!inputEl) return
+
+                        const folderPath = inputEl.value.trim()
+                        if (!folderPath) return
+
+                        // Check if folder exists
+                        const folder = this.app.vault.getAbstractFileByPath(folderPath)
+                        if (!folder) {
+                            // Folder doesn't exist, but still allow adding it
+                            // (user might want to exclude a folder they'll create later)
+                        }
+
+                        // Check if already excluded
+                        if (excludedFolders.includes(folderPath)) {
+                            inputEl.value = ''
+                            return
+                        }
+
+                        // Add to excluded folders
+                        const newExcludedFolders = [...excludedFolders, folderPath]
+                        await this.plugin.updateSetting('excludedFolders', newExcludedFolders)
+
+                        // Clear input and refresh display
+                        inputEl.value = ''
+                        this.display()
+                    })
+            )
+    }
+
+    private renderExcludedFolder(container: HTMLElement, folderPath: string): void {
+        const folderEl = container.createDiv({ cls: 'note-village-excluded-folder' })
+
+        // Folder path
+        folderEl.createSpan({
+            cls: 'note-village-excluded-folder-path',
+            text: folderPath
+        })
+
+        // Remove button
+        const removeBtn = folderEl.createEl('button', {
+            cls: 'note-village-excluded-folder-remove',
+            attr: { 'aria-label': 'Remove folder' }
+        })
+        removeBtn.innerHTML = '×'
+        removeBtn.addEventListener('click', async () => {
+            const newExcludedFolders = this.plugin.settings.excludedFolders.filter(
+                (f) => f !== folderPath
+            )
+            await this.plugin.updateSetting('excludedFolders', newExcludedFolders)
+            this.display()
+        })
     }
 
     private renderDisplaySettings(containerEl: HTMLElement): void {

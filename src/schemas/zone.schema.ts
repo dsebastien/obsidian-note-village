@@ -1,16 +1,17 @@
 import { z } from 'zod'
 
 /**
- * Zod schema for zone definition
+ * Zod schema for zone definition - rectangular JRPG-style zones
  */
 export const ZoneSchema = z.object({
     id: z.string(),
     name: z.string(),
     tag: z.string(),
     color: z.string(),
-    startAngle: z.number(),
-    endAngle: z.number(),
-    innerRadius: z.number(),
-    outerRadius: z.number(),
+    // Rectangular bounds (JRPG grid layout)
+    x: z.number(),
+    y: z.number(),
+    width: z.number(),
+    height: z.number(),
     noteCount: z.number()
 })

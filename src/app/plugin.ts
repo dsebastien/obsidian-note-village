@@ -106,19 +106,15 @@ export class NoteVillagePlugin extends Plugin {
         let leaf = workspace.getLeavesOfType(NOTE_VILLAGE_VIEW_TYPE)[0]
 
         if (!leaf) {
-            const rightLeaf = workspace.getRightLeaf(false)
-            if (rightLeaf) {
-                leaf = rightLeaf
-                await leaf.setViewState({
-                    type: NOTE_VILLAGE_VIEW_TYPE,
-                    active: true
-                })
-            }
+            // Open in a regular tab in the main editor area
+            leaf = workspace.getLeaf('tab')
+            await leaf.setViewState({
+                type: NOTE_VILLAGE_VIEW_TYPE,
+                active: true
+            })
         }
 
-        if (leaf) {
-            workspace.revealLeaf(leaf)
-        }
+        workspace.revealLeaf(leaf)
     }
 
     /**

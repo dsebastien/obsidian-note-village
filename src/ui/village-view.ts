@@ -101,7 +101,7 @@ export class VillageView extends ItemView {
 
             // Load villagers in the background after game is ready
             // This prevents blocking the initial render
-            scene.spawnVillagersInBatches(5, 50)
+            scene.spawnVillagersInBatches(10)
         }
 
         // Set up resize observer
@@ -298,11 +298,15 @@ export class VillageView extends ItemView {
      * Generate village data from vault analysis
      */
     private generateVillageData(): VillageData {
-        const generator = new VillageGenerator(this.app, {
-            seed: this.plugin.settings.villageSeed || this.app.vault.getName(),
-            topTagCount: this.plugin.settings.topTagCount,
-            maxVillagers: this.plugin.settings.maxVillagers
-        })
+        const generator = new VillageGenerator(
+            this.app,
+            {
+                seed: this.plugin.settings.villageSeed || this.app.vault.getName(),
+                topTagCount: this.plugin.settings.topTagCount,
+                maxVillagers: this.plugin.settings.maxVillagers
+            },
+            this.plugin.settings.excludedFolders
+        )
 
         return generator.generate()
     }
@@ -366,7 +370,7 @@ export class VillageView extends ItemView {
             })
 
             // Load villagers in the background
-            scene.spawnVillagersInBatches(5, 50)
+            scene.spawnVillagersInBatches(10)
         }
     }
 }

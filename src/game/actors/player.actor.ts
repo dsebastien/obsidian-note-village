@@ -1,21 +1,34 @@
 import * as ex from 'excalibur'
 import { log } from '../../utils/log'
+import {
+    SpriteManager,
+    DirectionComponent,
+    AnimatedSpriteComponent
+} from '../graphics/sprite-manager'
 
 /**
- * Player character controlled by the user
+ * Player character controlled by the user.
+ * Features JRPG-style pixel art with 4-direction walking animations.
  */
 export class Player extends ex.Actor {
-    private speed = 100
+    private speed = 120
+    private directionComponent: DirectionComponent
+    private animatedSprite: AnimatedSpriteComponent | null = null
 
     constructor(spawnPoint: ex.Vector) {
         super({
             pos: spawnPoint,
             anchor: ex.Vector.Half,
-            width: 24,
-            height: 32,
-            color: ex.Color.fromHex('#4169E1'), // Royal blue
+            width: 16,
+            height: 24,
             collisionType: ex.CollisionType.Active
         })
+
+        this.directionComponent = new DirectionComponent()
+        this.addComponent(this.directionComponent)
+
+        // Z-index for proper layering
+        this.z = 10
     }
 
     override onInitialize(engine: ex.Engine): void {
@@ -25,33 +38,61 @@ export class Player extends ex.Actor {
     }
 
     /**
-     * Set up player sprite (placeholder)
+     * Set up player sprite with animations
      */
     private setupSprite(): void {
-        // TODO: Load actual sprite sheet and animations
-        // For now using the colored rectangle from constructor
+        const spriteManager = SpriteManager.getInstance()
+        const animations = spriteManager.getHeroAnimations()
+
+        if (animations) {
+            this.animatedSprite = new AnimatedSpriteComponent(animations)
+            this.addComponent(this.animatedSprite)
+            this.animatedSprite.setAnimation('idle-down')
+        } else {
+            // Fallback to colored rectangle if sprites not loaded
+            log('Sprites not loaded, using fallback', 'warn')
+            this.graphics.use(
+                new ex.Rectangle({
+                    width: 16,
+                    height: 24,
+                    color: ex.Color.fromHex('#4169E1')
+                })
+            )
+        }
     }
 
     /**
      * Set up player input handling
      */
     private setupInput(engine: ex.Engine): void {
-        // Keyboard movement (WASD + Arrows)
-        engine.input.keyboard.on('hold', (evt) => {
+        // Track pressed keys for smooth movement
+        const pressedKeys = new Set<ex.Keys>()
+
+        engine.input.keyboard.on('press', (evt) => {
+            pressedKeys.add(evt.key)
+        })
+
+        engine.input.keyboard.on('release', (evt) => {
+            pressedKeys.delete(evt.key)
+        })
+
+        // Update velocity based on pressed keys every frame
+        this.on('preupdate', () => {
             const direction = ex.Vector.Zero.clone()
 
-            if (evt.key === ex.Keys.W || evt.key === ex.Keys.Up) direction.y = -1
-            if (evt.key === ex.Keys.S || evt.key === ex.Keys.Down) direction.y = 1
-            if (evt.key === ex.Keys.A || evt.key === ex.Keys.Left) direction.x = -1
-            if (evt.key === ex.Keys.D || evt.key === ex.Keys.Right) direction.x = 1
+            if (pressedKeys.has(ex.Keys.W) || pressedKeys.has(ex.Keys.Up)) direction.y = -1
+            if (pressedKeys.has(ex.Keys.S) || pressedKeys.has(ex.Keys.Down)) direction.y = 1
+            if (pressedKeys.has(ex.Keys.A) || pressedKeys.has(ex.Keys.Left)) direction.x = -1
+            if (pressedKeys.has(ex.Keys.D) || pressedKeys.has(ex.Keys.Right)) direction.x = 1
 
             if (!direction.equals(ex.Vector.Zero)) {
                 this.vel = direction.normalize().scale(this.speed)
+            } else if (pressedKeys.size === 0 && !this.actions.getQueue().hasNext()) {
+                this.vel = ex.Vector.Zero
             }
-        })
 
-        engine.input.keyboard.on('release', () => {
-            this.vel = ex.Vector.Zero
+            // Update direction and animation
+            this.updateAnimation()
         })
 
         // Click-to-move
@@ -59,6 +100,20 @@ export class Player extends ex.Actor {
             this.actions.clearActions()
             this.actions.moveTo(evt.worldPos, this.speed)
         })
+    }
+
+    /**
+     * Update animation based on current velocity
+     */
+    private updateAnimation(): void {
+        this.directionComponent.updateFromVelocity(this.vel)
+
+        if (this.animatedSprite) {
+            this.animatedSprite.updateAnimation(
+                this.directionComponent.direction,
+                this.directionComponent.isMoving
+            )
+        }
     }
 
     /**
@@ -73,5 +128,12 @@ export class Player extends ex.Actor {
      */
     setSpeed(speed: number): void {
         this.speed = speed
+    }
+
+    /**
+     * Get current facing direction
+     */
+    getDirection(): string {
+        return this.directionComponent.direction
     }
 }

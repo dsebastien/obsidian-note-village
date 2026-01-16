@@ -14,6 +14,9 @@ const mockNotesByTag = new Map<string, ScannedNote[]>()
 
 mock.module('../../vault/tag-analyzer', () => ({
     TagAnalyzer: class MockTagAnalyzer {
+        setExcludedFolders(_folders: string[]): void {
+            // Mock implementation
+        }
         getTopTags(_count: number): TagCount[] {
             return mockTopTags
         }
@@ -22,6 +25,9 @@ mock.module('../../vault/tag-analyzer', () => ({
 
 mock.module('../../vault/note-scanner', () => ({
     NoteScanner: class MockNoteScanner {
+        setExcludedFolders(_folders: string[]): void {
+            // Mock implementation
+        }
         getNotesGroupedByTag(_tags: string[]): Map<string, ScannedNote[]> {
             return mockNotesByTag
         }
@@ -183,7 +189,7 @@ describe('VillageGenerator', () => {
             expect(data.zones[1]?.color).toMatch(/^#[0-9A-Fa-f]{6}$/)
         })
 
-        test('should set zone angles proportional to note count', () => {
+        test('should create rectangular zones in grid layout', () => {
             mockTopTags.push({ tag: 'large', count: 20 }, { tag: 'small', count: 5 })
             mockNotesByTag.set('large', [])
             mockNotesByTag.set('small', [])
@@ -191,30 +197,34 @@ describe('VillageGenerator', () => {
             const generator = new VillageGenerator(mockApp, { seed: 'test' })
             const data = generator.generate()
 
-            const largeZone = data.zones.find((z) => z.tag === 'large')
-            const smallZone = data.zones.find((z) => z.tag === 'small')
-
-            // Larger zone should have larger angle span
-            const largeAngle = (largeZone?.endAngle ?? 0) - (largeZone?.startAngle ?? 0)
-            const smallAngle = (smallZone?.endAngle ?? 0) - (smallZone?.startAngle ?? 0)
-
-            expect(largeAngle).toBeGreaterThan(smallAngle)
+            // All zones should have rectangular bounds
+            for (const zone of data.zones) {
+                expect(zone.x).toBeDefined()
+                expect(zone.y).toBeDefined()
+                expect(zone.width).toBeGreaterThan(0)
+                expect(zone.height).toBeGreaterThan(0)
+            }
         })
 
-        test('should enforce minimum angle for zones', () => {
-            mockTopTags.push({ tag: 'huge', count: 100 }, { tag: 'tiny', count: 1 })
-            mockNotesByTag.set('huge', [])
-            mockNotesByTag.set('tiny', [])
+        test('should position zones in a grid pattern', () => {
+            mockTopTags.push(
+                { tag: 'zone1', count: 10 },
+                { tag: 'zone2', count: 10 },
+                { tag: 'zone3', count: 10 }
+            )
+            mockNotesByTag.set('zone1', [])
+            mockNotesByTag.set('zone2', [])
+            mockNotesByTag.set('zone3', [])
 
             const generator = new VillageGenerator(mockApp, { seed: 'test' })
             const data = generator.generate()
 
-            const tinyZone = data.zones.find((z) => z.tag === 'tiny')
-            const tinyAngle = (tinyZone?.endAngle ?? 0) - (tinyZone?.startAngle ?? 0)
+            // Zones should be positioned at different grid cells
+            const positions = data.zones.map((z) => ({ x: z.x, y: z.y }))
+            const uniquePositions = new Set(positions.map((p) => `${p.x},${p.y}`))
 
-            // Minimum angle is 20 degrees
-            const minAngle = (20 * Math.PI) / 180
-            expect(tinyAngle).toBeGreaterThanOrEqual(minAngle - 0.001)
+            // Each zone should have a unique position
+            expect(uniquePositions.size).toBe(positions.length)
         })
     })
 
@@ -280,11 +290,12 @@ describe('VillageGenerator', () => {
             for (const villager of data.villagers) {
                 const x = villager.homePosition.x
                 const y = villager.homePosition.y
-                const distance = Math.sqrt(x * x + y * y)
 
-                // Should be within zone radius (with some margin for inner/outer padding)
-                expect(distance).toBeGreaterThan(zone.innerRadius)
-                expect(distance).toBeLessThan(zone.outerRadius)
+                // Should be within rectangular zone bounds (with padding)
+                expect(x).toBeGreaterThanOrEqual(zone.x)
+                expect(x).toBeLessThanOrEqual(zone.x + zone.width)
+                expect(y).toBeGreaterThanOrEqual(zone.y)
+                expect(y).toBeLessThanOrEqual(zone.y + zone.height)
             }
         })
 
@@ -311,7 +322,9 @@ describe('VillageGenerator', () => {
                 (s) => s.type === 'fountain' && s.id === 'fountain-central'
             )
             expect(fountain).toBeDefined()
-            expect(fountain?.position).toEqual({ x: 0, y: 0 })
+            // Fountain is in the plaza (center of the grid)
+            expect(fountain?.position.x).toBeGreaterThan(0)
+            expect(fountain?.position.y).toBeGreaterThan(0)
         })
 
         test('should include benches around plaza', () => {
@@ -374,31 +387,39 @@ describe('VillageGenerator', () => {
     })
 
     describe('spawn point', () => {
-        test('should set spawn point near plaza edge', () => {
-            const generator = new VillageGenerator(mockApp, {
-                seed: 'test',
-                plazaRadius: 100
-            })
+        test('should set spawn point at center of world', () => {
+            const generator = new VillageGenerator(mockApp, { seed: 'test' })
             const data = generator.generate()
 
-            expect(data.spawnPoint.x).toBe(0)
-            expect(data.spawnPoint.y).toBe(150) // plazaRadius + 50
+            // Spawn point should be at center of the world (plaza area)
+            expect(data.spawnPoint.x).toBe(data.worldSize.width / 2)
+            expect(data.spawnPoint.y).toBe(data.worldSize.height / 2)
         })
     })
 
     describe('world size', () => {
-        test('should calculate world size based on zone dimensions', () => {
-            const generator = new VillageGenerator(mockApp, {
-                seed: 'test',
-                zoneInnerRadius: 150,
-                zoneWidth: 300
-            })
+        test('should calculate world size based on grid dimensions', () => {
+            mockTopTags.push(
+                { tag: 'zone1', count: 10 },
+                { tag: 'zone2', count: 10 },
+                { tag: 'zone3', count: 10 }
+            )
+            mockNotesByTag.set('zone1', [])
+            mockNotesByTag.set('zone2', [])
+            mockNotesByTag.set('zone3', [])
+
+            const generator = new VillageGenerator(mockApp, { seed: 'test' })
             const data = generator.generate()
 
-            // outerRadius = 150 + 300 + 100 = 550
-            // worldSize = 550 * 2.5 = 1375
-            expect(data.worldSize.width).toBe(1375)
-            expect(data.worldSize.height).toBe(1375)
+            // World size should be positive and large enough to contain all zones
+            expect(data.worldSize.width).toBeGreaterThan(0)
+            expect(data.worldSize.height).toBeGreaterThan(0)
+
+            // All zones should fit within world bounds
+            for (const zone of data.zones) {
+                expect(zone.x + zone.width).toBeLessThanOrEqual(data.worldSize.width)
+                expect(zone.y + zone.height).toBeLessThanOrEqual(data.worldSize.height)
+            }
         })
     })
 })
