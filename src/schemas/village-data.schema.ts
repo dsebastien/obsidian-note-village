@@ -25,5 +25,14 @@ export const VillageDataSchema = z.object({
             width: z.number(),
             height: z.number()
         })
+        .optional(),
+    /** Central plaza bounds */
+    plazaBounds: z
+        .object({
+            x: z.number(),
+            y: z.number(),
+            width: z.number(),
+            height: z.number()
+        })
         .optional()
 })

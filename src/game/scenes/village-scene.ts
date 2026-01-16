@@ -131,6 +131,9 @@ export class VillageScene extends ex.Scene {
         ground.z = -100
         this.add(ground)
 
+        // Draw paved roads in the alleys between zones
+        this.drawRoads()
+
         // Draw rectangular zones with colored overlays
         for (const zone of this.villageData.zones) {
             this.drawZone(zone)
@@ -141,32 +144,247 @@ export class VillageScene extends ex.Scene {
     }
 
     /**
-     * Draw central plaza with stone pattern (JRPG square style)
+     * Draw paved roads in the alleys between zones
+     * Creates cobblestone paths connecting zones to the plaza
      */
-    private drawPlaza(): void {
-        // Calculate plaza position from zones (center of the grid)
+    private drawRoads(): void {
         const zones = this.villageData.zones
         if (zones.length === 0) return
 
-        // Find the center of all zones
-        const firstZone = zones[0]!
-        let minX = firstZone.x
-        let minY = firstZone.y
-        let maxX = firstZone.x + firstZone.width
-        let maxY = firstZone.y + firstZone.height
+        // Calculate road network from zone positions
+        // Roads are drawn in the gaps between zones and connect to the plaza
 
-        for (const zone of zones) {
-            minX = Math.min(minX, zone.x)
-            minY = Math.min(minY, zone.y)
-            maxX = Math.max(maxX, zone.x + zone.width)
-            maxY = Math.max(maxY, zone.y + zone.height)
+        // Find the grid structure by analyzing zone positions
+        const zonePositions = zones.map((z) => ({
+            x: z.x,
+            y: z.y,
+            width: z.width,
+            height: z.height,
+            right: z.x + z.width,
+            bottom: z.y + z.height
+        }))
+
+        // Find unique horizontal and vertical lines where roads should be
+        const horizontalRoads: Array<{ y: number; xStart: number; xEnd: number }> = []
+        const verticalRoads: Array<{ x: number; yStart: number; yEnd: number }> = []
+
+        // Gap size (should match ZONE_GAP from village-generator)
+        const gapSize = 100
+
+        // Find horizontal gaps (between vertically adjacent zones)
+        const uniqueBottoms = [...new Set(zonePositions.map((z) => z.bottom))].sort((a, b) => a - b)
+        for (const bottom of uniqueBottoms) {
+            // Check if there are zones below this bottom edge
+            const zonesAbove = zonePositions.filter((z) => Math.abs(z.bottom - bottom) < 1)
+            const zonesBelow = zonePositions.filter((z) => Math.abs(z.y - (bottom + gapSize)) < 1)
+
+            if (zonesAbove.length > 0 && zonesBelow.length > 0) {
+                // Find the extent of the road
+                const allZones = [...zonesAbove, ...zonesBelow]
+                const xStart = Math.min(...allZones.map((z) => z.x))
+                const xEnd = Math.max(...allZones.map((z) => z.right))
+
+                horizontalRoads.push({
+                    y: bottom,
+                    xStart: xStart - gapSize,
+                    xEnd: xEnd + gapSize
+                })
+            }
         }
 
-        // Plaza is at the center of the world
-        const plazaSize = 200
-        const { width: worldWidth, height: worldHeight } = this.villageData.worldSize
-        const plazaX = worldWidth / 2 - plazaSize / 2
-        const plazaY = worldHeight / 2 - plazaSize / 2
+        // Find vertical gaps (between horizontally adjacent zones)
+        const uniqueRights = [...new Set(zonePositions.map((z) => z.right))].sort((a, b) => a - b)
+        for (const right of uniqueRights) {
+            // Check if there are zones to the right of this edge
+            const zonesLeft = zonePositions.filter((z) => Math.abs(z.right - right) < 1)
+            const zonesRight = zonePositions.filter((z) => Math.abs(z.x - (right + gapSize)) < 1)
+
+            if (zonesLeft.length > 0 && zonesRight.length > 0) {
+                // Find the extent of the road
+                const allZones = [...zonesLeft, ...zonesRight]
+                const yStart = Math.min(...allZones.map((z) => z.y))
+                const yEnd = Math.max(...allZones.map((z) => z.bottom))
+
+                verticalRoads.push({
+                    x: right,
+                    yStart: yStart - gapSize,
+                    yEnd: yEnd + gapSize
+                })
+            }
+        }
+
+        // Also add roads connecting the edge zones to the world boundary (for the outer alleys)
+        const minX = Math.min(...zonePositions.map((z) => z.x))
+        const maxRight = Math.max(...zonePositions.map((z) => z.right))
+        const minY = Math.min(...zonePositions.map((z) => z.y))
+        const maxBottom = Math.max(...zonePositions.map((z) => z.bottom))
+
+        // Add roads around the perimeter connecting to the plaza area
+        // Left edge
+        if (minX > gapSize) {
+            verticalRoads.push({
+                x: minX - gapSize,
+                yStart: minY - gapSize,
+                yEnd: maxBottom + gapSize
+            })
+        }
+        // Right edge
+        verticalRoads.push({
+            x: maxRight,
+            yStart: minY - gapSize,
+            yEnd: maxBottom + gapSize
+        })
+        // Top edge
+        if (minY > gapSize) {
+            horizontalRoads.push({
+                y: minY - gapSize,
+                xStart: minX - gapSize,
+                xEnd: maxRight + gapSize
+            })
+        }
+        // Bottom edge
+        horizontalRoads.push({
+            y: maxBottom,
+            xStart: minX - gapSize,
+            xEnd: maxRight + gapSize
+        })
+
+        // Draw horizontal roads
+        for (const road of horizontalRoads) {
+            this.drawHorizontalRoad(road.xStart, road.y, road.xEnd - road.xStart, gapSize)
+        }
+
+        // Draw vertical roads
+        for (const road of verticalRoads) {
+            this.drawVerticalRoad(road.x, road.yStart, gapSize, road.yEnd - road.yStart)
+        }
+    }
+
+    /**
+     * Draw a horizontal cobblestone road segment
+     */
+    private drawHorizontalRoad(x: number, y: number, width: number, height: number): void {
+        const roadCanvas = new ex.Canvas({
+            width,
+            height,
+            cache: true,
+            draw: (ctx) => {
+                // Base road color (dirt/cobblestone)
+                ctx.fillStyle = '#9B8B7A'
+                ctx.fillRect(0, 0, width, height)
+
+                // Cobblestone pattern
+                const stoneSize = 8
+                for (let sx = 0; sx < width; sx += stoneSize) {
+                    for (let sy = 0; sy < height; sy += stoneSize) {
+                        // Offset every other row
+                        const offsetX = (Math.floor(sy / stoneSize) % 2) * (stoneSize / 2)
+
+                        // Stone color variation
+                        const variation = ((sx * 7 + sy * 11) % 100) / 100
+                        if (variation < 0.25) {
+                            ctx.fillStyle = '#8B7B6A' // Darker
+                        } else if (variation < 0.5) {
+                            ctx.fillStyle = '#AB9B8A' // Lighter
+                        } else if (variation < 0.75) {
+                            ctx.fillStyle = '#A0907F' // Medium
+                        } else {
+                            ctx.fillStyle = '#9B8B7A' // Base
+                        }
+                        ctx.fillRect(sx + offsetX, sy, stoneSize - 1, stoneSize - 1)
+
+                        // Stone gaps/mortar
+                        ctx.fillStyle = '#6B5B4A'
+                        ctx.fillRect(sx + offsetX + stoneSize - 1, sy, 1, stoneSize)
+                        ctx.fillRect(sx + offsetX, sy + stoneSize - 1, stoneSize, 1)
+                    }
+                }
+
+                // Road edges (slightly darker border)
+                ctx.fillStyle = '#7B6B5A'
+                ctx.fillRect(0, 0, width, 2)
+                ctx.fillRect(0, height - 2, width, 2)
+            }
+        })
+
+        const roadActor = new ex.Actor({
+            pos: new ex.Vector(x + width / 2, y + height / 2),
+            anchor: ex.Vector.Half,
+            collisionType: ex.CollisionType.PreventCollision
+        })
+        roadActor.graphics.use(roadCanvas)
+        roadActor.z = -95 // Between grass (-100) and zones (-90)
+        this.add(roadActor)
+    }
+
+    /**
+     * Draw a vertical cobblestone road segment
+     */
+    private drawVerticalRoad(x: number, y: number, width: number, height: number): void {
+        const roadCanvas = new ex.Canvas({
+            width,
+            height,
+            cache: true,
+            draw: (ctx) => {
+                // Base road color (dirt/cobblestone)
+                ctx.fillStyle = '#9B8B7A'
+                ctx.fillRect(0, 0, width, height)
+
+                // Cobblestone pattern
+                const stoneSize = 8
+                for (let sx = 0; sx < width; sx += stoneSize) {
+                    for (let sy = 0; sy < height; sy += stoneSize) {
+                        // Offset every other column for vertical roads
+                        const offsetY = (Math.floor(sx / stoneSize) % 2) * (stoneSize / 2)
+
+                        // Stone color variation
+                        const variation = ((sx * 13 + sy * 7) % 100) / 100
+                        if (variation < 0.25) {
+                            ctx.fillStyle = '#8B7B6A' // Darker
+                        } else if (variation < 0.5) {
+                            ctx.fillStyle = '#AB9B8A' // Lighter
+                        } else if (variation < 0.75) {
+                            ctx.fillStyle = '#A0907F' // Medium
+                        } else {
+                            ctx.fillStyle = '#9B8B7A' // Base
+                        }
+                        ctx.fillRect(sx, sy + offsetY, stoneSize - 1, stoneSize - 1)
+
+                        // Stone gaps/mortar
+                        ctx.fillStyle = '#6B5B4A'
+                        ctx.fillRect(sx + stoneSize - 1, sy + offsetY, 1, stoneSize)
+                        ctx.fillRect(sx, sy + offsetY + stoneSize - 1, stoneSize, 1)
+                    }
+                }
+
+                // Road edges (slightly darker border)
+                ctx.fillStyle = '#7B6B5A'
+                ctx.fillRect(0, 0, 2, height)
+                ctx.fillRect(width - 2, 0, 2, height)
+            }
+        })
+
+        const roadActor = new ex.Actor({
+            pos: new ex.Vector(x + width / 2, y + height / 2),
+            anchor: ex.Vector.Half,
+            collisionType: ex.CollisionType.PreventCollision
+        })
+        roadActor.graphics.use(roadCanvas)
+        roadActor.z = -95 // Between grass (-100) and zones (-90)
+        this.add(roadActor)
+    }
+
+    /**
+     * Draw central plaza with stone pattern (JRPG square style)
+     */
+    private drawPlaza(): void {
+        // Use plaza bounds from village data (calculated by generator)
+        const plazaBounds = this.villageData.plazaBounds
+        if (!plazaBounds) return
+
+        const plazaX = plazaBounds.x
+        const plazaY = plazaBounds.y
+        const plazaSize = plazaBounds.width // Assuming square plaza
 
         const plazaCanvas = new ex.Canvas({
             width: plazaSize,
@@ -224,60 +442,92 @@ export class VillageScene extends ex.Scene {
     }
 
     /**
-     * Draw a zone as a rectangular area (JRPG grid style)
+     * Draw a zone as a rectangular area with beautiful stone pavement (JRPG grid style)
      */
     private drawZone(zone: Zone): void {
         const { x, y, width, height, color } = zone
+
+        // Get color variations for tile pattern
+        const baseColor = this.hexToRgb(color)
+        const tileColors = this.generateTileColorPalette(baseColor)
 
         const zoneCanvas = new ex.Canvas({
             width,
             height,
             cache: true,
             draw: (ctx) => {
-                // Fill with semi-transparent zone color
-                const zoneColor = this.hexToRgba(color, 0.2)
-                ctx.fillStyle = zoneColor
-                ctx.fillRect(0, 0, width, height)
+                // Draw stone tile pavement (similar to plaza but zone-colored)
+                const tileSize = 16
+                for (let tx = 0; tx < width; tx += tileSize) {
+                    for (let ty = 0; ty < height; ty += tileSize) {
+                        // Offset every other row for brick pattern
+                        const offsetX = (Math.floor(ty / tileSize) % 2) * (tileSize / 2)
 
-                // Add subtle texture variation
-                const numPatches = Math.floor((width * height) / 2000)
-                for (let i = 0; i < numPatches; i++) {
-                    const px = Math.random() * width
-                    const py = Math.random() * height
+                        // Tile color variation (deterministic based on position)
+                        const variation = ((tx * 7 + ty * 13) % 100) / 100
+                        let tileColor: string
+                        if (variation < 0.3) {
+                            tileColor = tileColors.dark
+                        } else if (variation < 0.6) {
+                            tileColor = tileColors.light
+                        } else {
+                            tileColor = tileColors.base
+                        }
+                        ctx.fillStyle = tileColor
+                        ctx.fillRect(tx + offsetX, ty, tileSize - 1, tileSize - 1)
 
-                    ctx.fillStyle = this.hexToRgba(color, 0.1)
-                    ctx.fillRect(px, py, 8 + Math.random() * 12, 8 + Math.random() * 12)
+                        // Grout/mortar lines
+                        ctx.fillStyle = tileColors.grout
+                        ctx.fillRect(tx + offsetX + tileSize - 1, ty, 1, tileSize)
+                        ctx.fillRect(tx + offsetX, ty + tileSize - 1, tileSize, 1)
+                    }
                 }
 
-                // Zone border (JRPG style with corner decorations)
-                ctx.strokeStyle = this.hexToRgba(color, 0.5)
-                ctx.lineWidth = 3
-                ctx.strokeRect(2, 2, width - 4, height - 4)
+                // Add subtle decorative elements (small darker patches)
+                const numPatches = Math.floor((width * height) / 4000)
+                for (let i = 0; i < numPatches; i++) {
+                    const px = (i * 127) % width
+                    const py = (i * 193) % height
+                    ctx.fillStyle = this.hexToRgba(color, 0.15)
+                    ctx.fillRect(px, py, 4, 4)
+                }
 
-                // Inner border
-                ctx.strokeStyle = this.hexToRgba(color, 0.3)
-                ctx.lineWidth = 1
+                // Decorative border (like plaza)
+                ctx.strokeStyle = tileColors.borderDark
+                ctx.lineWidth = 4
+                ctx.strokeRect(3, 3, width - 6, height - 6)
+
+                ctx.strokeStyle = tileColors.borderLight
+                ctx.lineWidth = 2
                 ctx.strokeRect(6, 6, width - 12, height - 12)
 
-                // Corner decorations (JRPG style)
-                const cornerSize = 12
-                ctx.fillStyle = this.hexToRgba(color, 0.4)
+                // Corner decorations (JRPG style, more prominent)
+                const cornerSize = 16
+                ctx.fillStyle = tileColors.cornerAccent
 
                 // Top-left corner
-                ctx.fillRect(0, 0, cornerSize, 4)
-                ctx.fillRect(0, 0, 4, cornerSize)
+                ctx.fillRect(0, 0, cornerSize, 5)
+                ctx.fillRect(0, 0, 5, cornerSize)
+                ctx.fillRect(2, 2, cornerSize - 4, 2)
+                ctx.fillRect(2, 2, 2, cornerSize - 4)
 
                 // Top-right corner
-                ctx.fillRect(width - cornerSize, 0, cornerSize, 4)
-                ctx.fillRect(width - 4, 0, 4, cornerSize)
+                ctx.fillRect(width - cornerSize, 0, cornerSize, 5)
+                ctx.fillRect(width - 5, 0, 5, cornerSize)
+                ctx.fillRect(width - cornerSize + 2, 2, cornerSize - 4, 2)
+                ctx.fillRect(width - 4, 2, 2, cornerSize - 4)
 
                 // Bottom-left corner
-                ctx.fillRect(0, height - 4, cornerSize, 4)
-                ctx.fillRect(0, height - cornerSize, 4, cornerSize)
+                ctx.fillRect(0, height - 5, cornerSize, 5)
+                ctx.fillRect(0, height - cornerSize, 5, cornerSize)
+                ctx.fillRect(2, height - 4, cornerSize - 4, 2)
+                ctx.fillRect(2, height - cornerSize + 2, 2, cornerSize - 4)
 
                 // Bottom-right corner
-                ctx.fillRect(width - cornerSize, height - 4, cornerSize, 4)
-                ctx.fillRect(width - 4, height - cornerSize, 4, cornerSize)
+                ctx.fillRect(width - cornerSize, height - 5, cornerSize, 5)
+                ctx.fillRect(width - 5, height - cornerSize, 5, cornerSize)
+                ctx.fillRect(width - cornerSize + 2, height - 4, cornerSize - 4, 2)
+                ctx.fillRect(width - 4, height - cornerSize + 2, 2, cornerSize - 4)
             }
         })
 
@@ -303,6 +553,59 @@ export class VillageScene extends ex.Scene {
         const g = parseInt(result[2], 16)
         const b = parseInt(result[3], 16)
         return `rgba(${r}, ${g}, ${b}, ${alpha})`
+    }
+
+    /**
+     * Convert hex color to RGB object
+     */
+    private hexToRgb(hex: string): { r: number; g: number; b: number } {
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+        if (!result || !result[1] || !result[2] || !result[3]) {
+            return { r: 128, g: 128, b: 128 }
+        }
+        return {
+            r: parseInt(result[1], 16),
+            g: parseInt(result[2], 16),
+            b: parseInt(result[3], 16)
+        }
+    }
+
+    /**
+     * Generate a color palette for zone tiles based on a base color
+     * Creates lighter/darker variations for visual interest
+     */
+    private generateTileColorPalette(baseColor: { r: number; g: number; b: number }): {
+        base: string
+        light: string
+        dark: string
+        grout: string
+        borderDark: string
+        borderLight: string
+        cornerAccent: string
+    } {
+        const { r, g, b } = baseColor
+
+        // Blend with a neutral beige/tan to make colors more "stone-like"
+        const stoneR = 180
+        const stoneG = 160
+        const stoneB = 140
+        const blendFactor = 0.5 // How much of the original color to keep
+
+        const blendedR = Math.round(r * blendFactor + stoneR * (1 - blendFactor))
+        const blendedG = Math.round(g * blendFactor + stoneG * (1 - blendFactor))
+        const blendedB = Math.round(b * blendFactor + stoneB * (1 - blendFactor))
+
+        const clamp = (v: number): number => Math.max(0, Math.min(255, v))
+
+        return {
+            base: `rgb(${blendedR}, ${blendedG}, ${blendedB})`,
+            light: `rgb(${clamp(blendedR + 20)}, ${clamp(blendedG + 20)}, ${clamp(blendedB + 20)})`,
+            dark: `rgb(${clamp(blendedR - 25)}, ${clamp(blendedG - 25)}, ${clamp(blendedB - 25)})`,
+            grout: `rgb(${clamp(blendedR - 40)}, ${clamp(blendedG - 40)}, ${clamp(blendedB - 40)})`,
+            borderDark: `rgb(${clamp(blendedR - 50)}, ${clamp(blendedG - 50)}, ${clamp(blendedB - 50)})`,
+            borderLight: `rgb(${clamp(blendedR - 25)}, ${clamp(blendedG - 25)}, ${clamp(blendedB - 25)})`,
+            cornerAccent: `rgb(${clamp(r - 30)}, ${clamp(g - 30)}, ${clamp(b - 30)})`
+        }
     }
 
     /**

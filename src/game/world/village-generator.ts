@@ -43,8 +43,8 @@ const PLAZA_SIZE = 200
 /** Size of each zone tile */
 const ZONE_SIZE = 300
 
-/** Gap between zones */
-const ZONE_GAP = 20
+/** Gap between zones (for roads/alleys) */
+const ZONE_GAP = 100
 
 /** Width of the forest border around the world */
 const FOREST_BORDER_WIDTH = 80
@@ -122,8 +122,11 @@ export class VillageGenerator {
             height: innerHeight
         }
 
-        // Spawn point is at the center of the plaza (adjusted for forest offset)
-        const spawnPoint = { x: worldWidth / 2, y: worldHeight / 2 }
+        // Spawn point is at the center of the plaza
+        const spawnPoint = {
+            x: this.plazaX + this.plazaWidth / 2,
+            y: this.plazaY + this.plazaHeight / 2
+        }
 
         return {
             seed: this.options.seed,
@@ -132,7 +135,13 @@ export class VillageGenerator {
             structures,
             spawnPoint,
             worldSize,
-            playableArea: this.playableArea
+            playableArea: this.playableArea,
+            plazaBounds: {
+                x: this.plazaX,
+                y: this.plazaY,
+                width: this.plazaWidth,
+                height: this.plazaHeight
+            }
         }
     }
 

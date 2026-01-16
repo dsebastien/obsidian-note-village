@@ -641,13 +641,16 @@ describe('VillageGenerator', () => {
     })
 
     describe('spawn point', () => {
-        test('should set spawn point at center of world', () => {
+        test('should set spawn point at center of plaza', () => {
             const generator = new VillageGenerator(mockApp, { seed: 'test' })
             const data = generator.generate()
 
-            // Spawn point should be at center of the world (plaza area)
-            expect(data.spawnPoint.x).toBe(data.worldSize.width / 2)
-            expect(data.spawnPoint.y).toBe(data.worldSize.height / 2)
+            // Spawn point should be at center of the plaza
+            expect(data.plazaBounds).toBeDefined()
+            if (data.plazaBounds) {
+                expect(data.spawnPoint.x).toBe(data.plazaBounds.x + data.plazaBounds.width / 2)
+                expect(data.spawnPoint.y).toBe(data.plazaBounds.y + data.plazaBounds.height / 2)
+            }
         })
     })
 
