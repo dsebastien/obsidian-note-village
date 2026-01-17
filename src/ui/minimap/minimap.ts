@@ -22,6 +22,7 @@ export class Minimap {
     private readonly villagerColor = '#5AAF5A' // Green
     private readonly backgroundColor = 'rgba(0, 0, 0, 0.6)'
     private readonly borderColor = 'rgba(255, 255, 255, 0.3)'
+    private readonly forestColor = 'rgba(30, 80, 30, 0.5)' // Dark green for forest border
     private readonly zoneAlpha = 0.3
 
     constructor(parent: HTMLElement) {
@@ -123,6 +124,36 @@ export class Minimap {
         ctx.beginPath()
         ctx.roundRect(0.5, 0.5, this.size - 1, this.size - 1, 8)
         ctx.stroke()
+
+        // Draw forest border (the area outside the playable zone)
+        if (this.villageData.playableArea) {
+            const playable = this.villageData.playableArea
+            ctx.fillStyle = this.forestColor
+
+            // Top forest strip
+            ctx.fillRect(offsetX, offsetY, scaledWidth, playable.y * scale)
+
+            // Bottom forest strip
+            const bottomY = (playable.y + playable.height) * scale
+            ctx.fillRect(offsetX, offsetY + bottomY, scaledWidth, scaledHeight - bottomY)
+
+            // Left forest strip (between top and bottom)
+            ctx.fillRect(
+                offsetX,
+                offsetY + playable.y * scale,
+                playable.x * scale,
+                playable.height * scale
+            )
+
+            // Right forest strip (between top and bottom)
+            const rightX = (playable.x + playable.width) * scale
+            ctx.fillRect(
+                offsetX + rightX,
+                offsetY + playable.y * scale,
+                scaledWidth - rightX,
+                playable.height * scale
+            )
+        }
 
         // Draw zones
         for (const zone of this.villageData.zones) {

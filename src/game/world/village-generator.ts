@@ -49,8 +49,8 @@ const ZONE_GAP = 100
 /** Width of the forest border around the world */
 const FOREST_BORDER_WIDTH = 80
 
-/** Spacing between forest trees */
-const FOREST_TREE_SPACING = 24
+/** Spacing between forest trees (denser for better blocking) */
+const FOREST_TREE_SPACING = 16
 
 /** House dimensions for collision detection (width, height) */
 const HOUSE_SIZE = 48
@@ -835,8 +835,8 @@ export class VillageGenerator {
         // Top edge
         for (let x = 0; x < worldWidth; x += FOREST_TREE_SPACING) {
             for (let y = 0; y < FOREST_BORDER_WIDTH; y += FOREST_TREE_SPACING) {
-                const offsetX = this.random.nextFloat(-4, 4)
-                const offsetY = this.random.nextFloat(-4, 4)
+                const offsetX = this.random.nextFloat(-2, 2)
+                const offsetY = this.random.nextFloat(-2, 2)
                 structures.push({
                     id: `forest-${forestIndex++}`,
                     type: 'forest',
@@ -853,8 +853,8 @@ export class VillageGenerator {
                 y < worldHeight;
                 y += FOREST_TREE_SPACING
             ) {
-                const offsetX = this.random.nextFloat(-4, 4)
-                const offsetY = this.random.nextFloat(-4, 4)
+                const offsetX = this.random.nextFloat(-2, 2)
+                const offsetY = this.random.nextFloat(-2, 2)
                 structures.push({
                     id: `forest-${forestIndex++}`,
                     type: 'forest',
@@ -871,8 +871,8 @@ export class VillageGenerator {
                 y < worldHeight - FOREST_BORDER_WIDTH;
                 y += FOREST_TREE_SPACING
             ) {
-                const offsetX = this.random.nextFloat(-4, 4)
-                const offsetY = this.random.nextFloat(-4, 4)
+                const offsetX = this.random.nextFloat(-2, 2)
+                const offsetY = this.random.nextFloat(-2, 2)
                 structures.push({
                     id: `forest-${forestIndex++}`,
                     type: 'forest',
@@ -889,8 +889,8 @@ export class VillageGenerator {
                 y < worldHeight - FOREST_BORDER_WIDTH;
                 y += FOREST_TREE_SPACING
             ) {
-                const offsetX = this.random.nextFloat(-4, 4)
-                const offsetY = this.random.nextFloat(-4, 4)
+                const offsetX = this.random.nextFloat(-2, 2)
+                const offsetY = this.random.nextFloat(-2, 2)
                 structures.push({
                     id: `forest-${forestIndex++}`,
                     type: 'forest',

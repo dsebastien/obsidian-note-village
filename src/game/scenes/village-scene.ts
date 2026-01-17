@@ -57,6 +57,11 @@ export class VillageScene extends ex.Scene {
         this.player = new Player(toExVector(this.villageData.spawnPoint), this.inputManager)
         this.add(this.player)
 
+        // Set playable area bounds on player to prevent walking into the forest
+        if (this.villageData.playableArea) {
+            this.player.setPlayableArea(this.villageData.playableArea)
+        }
+
         // Camera follows player with smooth tracking
         this.camera.strategy.lockToActor(this.player)
         this.camera.zoom = 2.5
@@ -635,9 +640,9 @@ export class VillageScene extends ex.Scene {
             ? ex.CollisionType.Fixed
             : ex.CollisionType.PreventCollision
 
-        // For blocking structures, use a smaller collision box at the base
-        const collisionWidth = structure.isBlocking ? width * 0.6 : width
-        const collisionHeight = structure.isBlocking ? height * 0.3 : height
+        // For blocking structures (forest trees), use a larger collision box for better barrier
+        const collisionWidth = structure.isBlocking ? width * 0.8 : width
+        const collisionHeight = structure.isBlocking ? height * 0.4 : height
 
         const actor = new ex.Actor({
             pos,
@@ -647,18 +652,14 @@ export class VillageScene extends ex.Scene {
             collisionType
         })
 
-        if (sprite) {
-            actor.graphics.use(sprite)
-        } else {
-            // Fallback to colored rectangle
-            actor.graphics.use(
-                new ex.Rectangle({
-                    width,
-                    height,
-                    color: this.getStructureColor(structure.type)
-                })
+        if (!sprite) {
+            log(
+                `Missing sprite for structure: ${structure.type} (lookup: ${spriteType}-${variant})`,
+                'warn'
             )
+            return
         }
+        actor.graphics.use(sprite)
 
         // Set z-index based on structure type
         actor.z = this.getStructureZIndex(structure.type)
@@ -770,43 +771,6 @@ export class VillageScene extends ex.Scene {
             hash = hash & hash
         }
         return Math.abs(hash) % 4
-    }
-
-    /**
-     * Get fallback color for structure type
-     */
-    private getStructureColor(type: string): ex.Color {
-        switch (type) {
-            case 'house':
-                return ex.Color.fromHex('#8B4513')
-            case 'sign':
-                return ex.Color.fromHex('#DEB887')
-            case 'tree':
-                return ex.Color.fromHex('#228B22')
-            case 'forest':
-                return ex.Color.fromHex('#1B5E20') // Darker green for forest trees
-            case 'fence':
-                return ex.Color.fromHex('#A0522D')
-            case 'fountain':
-                return ex.Color.fromHex('#4169E1')
-            case 'bench':
-                return ex.Color.fromHex('#8B7355')
-            // Decorations
-            case 'flowerBed':
-                return ex.Color.fromHex('#FF6B6B') // Red flowers
-            case 'bush':
-                return ex.Color.fromHex('#2E8B57') // Sea green
-            case 'rock':
-                return ex.Color.fromHex('#808080') // Gray
-            case 'tallGrass':
-                return ex.Color.fromHex('#4A7C59') // Green grass
-            case 'barrel':
-                return ex.Color.fromHex('#8B5A2B') // Wood brown
-            case 'crate':
-                return ex.Color.fromHex('#C4A77D') // Light wood
-            default:
-                return ex.Color.Gray
-        }
     }
 
     /**

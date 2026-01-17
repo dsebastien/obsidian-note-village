@@ -12,11 +12,20 @@ import type { InputManager } from '../input/input-manager'
  * Features JRPG-style pixel art with 4-direction walking animations.
  * Uses focus-aware input handling - only responds when game canvas is focused.
  */
+/** Bounds for the playable area (player cannot move outside) */
+interface PlayableBounds {
+    x: number
+    y: number
+    width: number
+    height: number
+}
+
 export class Player extends ex.Actor {
     private speed = 120
     private directionComponent: DirectionComponent
     private animatedSprite: AnimatedSpriteComponent | null = null
     private inputManager: InputManager
+    private playableArea: PlayableBounds | null = null
 
     constructor(spawnPoint: ex.Vector, inputManager: InputManager) {
         super({
@@ -115,6 +124,14 @@ export class Player extends ex.Actor {
 
             // Update direction and animation
             this.updateAnimation()
+
+            // Clamp position to playable area (handles keyboard movement)
+            this.clampToPlayableArea()
+        })
+
+        // Clamp position after all updates (handles click-to-move)
+        this.on('postupdate', () => {
+            this.clampToPlayableArea()
         })
 
         // Click-to-move (only when canvas is focused)
@@ -163,5 +180,45 @@ export class Player extends ex.Actor {
      */
     getDirection(): string {
         return this.directionComponent.direction
+    }
+
+    /**
+     * Set the playable area bounds.
+     * The player's position will be clamped to stay within these bounds.
+     */
+    setPlayableArea(bounds: PlayableBounds): void {
+        this.playableArea = bounds
+    }
+
+    /**
+     * Clamp position to stay within playable area bounds.
+     * Called after movement updates to enforce boundaries.
+     */
+    private clampToPlayableArea(): void {
+        if (!this.playableArea) return
+
+        // Get player half-dimensions for collision
+        const halfWidth = this.width / 2
+        const halfHeight = this.height / 2
+
+        // Calculate min/max bounds (accounting for player size)
+        const minX = this.playableArea.x + halfWidth
+        const maxX = this.playableArea.x + this.playableArea.width - halfWidth
+        const minY = this.playableArea.y + halfHeight
+        const maxY = this.playableArea.y + this.playableArea.height - halfHeight
+
+        // Clamp position
+        const clampedX = Math.max(minX, Math.min(maxX, this.pos.x))
+        const clampedY = Math.max(minY, Math.min(maxY, this.pos.y))
+
+        // Update position if it changed
+        if (clampedX !== this.pos.x || clampedY !== this.pos.y) {
+            this.pos.x = clampedX
+            this.pos.y = clampedY
+
+            // Also stop velocity in the blocked direction to prevent "sliding" at edges
+            if (clampedX !== this.pos.x) this.vel.x = 0
+            if (clampedY !== this.pos.y) this.vel.y = 0
+        }
     }
 }
