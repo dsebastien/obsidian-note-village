@@ -1,3 +1,8 @@
+## [0.0.2](https://github.com/dsebastien/obsidian-note-village/compare/0.0.1...0.0.2) (2026-01-17)
+
+### Features
+
+* **all:** improved forest at border ([e8860fe](https://github.com/dsebastien/obsidian-note-village/commit/e8860fedf527ff7507fdc135ac1a2b783b629858))
 ## [0.0.1](https://github.com/dsebastien/obsidian-note-village/compare/e65dc567f58d6cd96b7d3b965925360268d10cf5...0.0.1) (2026-01-17)
 
 ### Features
