@@ -52,6 +52,32 @@ const FOREST_BORDER_WIDTH = 80
 /** Spacing between forest trees */
 const FOREST_TREE_SPACING = 24
 
+/** House dimensions for collision detection (width, height) */
+const HOUSE_SIZE = 48
+
+/** Minimum spacing between houses */
+const HOUSE_SPACING = 10
+
+/** Maximum attempts to find a non-overlapping position for a house */
+const MAX_HOUSE_PLACEMENT_ATTEMPTS = 20
+
+/** Bounding box for collision detection */
+interface BoundingBox {
+    x: number
+    y: number
+    width: number
+    height: number
+}
+
+/**
+ * Check if two bounding boxes overlap
+ */
+function boxesOverlap(a: BoundingBox, b: BoundingBox): boolean {
+    return (
+        a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y
+    )
+}
+
 /**
  * Generates village layout from vault data with JRPG-style rectangular grid
  */
@@ -377,31 +403,40 @@ export class VillageGenerator {
             this.random.nextBool(this.options.housesPerVillager)
         )
 
+        // Track placed house bounding boxes to avoid overlaps
+        const placedHouses: BoundingBox[] = []
+        const houseFullSize = HOUSE_SIZE + HOUSE_SPACING // Include spacing in collision box
+
         for (const villager of housedVillagers) {
             // Find the zone for this villager to keep house within bounds
             const zone = zones.find((z) => z.id === villager.zoneId)
             if (!zone) continue
 
-            // Place house near villager but within zone
-            const houseX = Math.max(
-                zone.x + 30,
-                Math.min(
-                    zone.x + zone.width - 60,
-                    villager.homePosition.x + this.random.nextFloat(-30, 30)
-                )
+            // Try to find a non-overlapping position for the house
+            const housePosition = this.findNonOverlappingHousePosition(
+                villager.homePosition,
+                zone,
+                placedHouses,
+                houseFullSize
             )
-            const houseY = Math.max(
-                zone.y + 30,
-                Math.min(
-                    zone.y + zone.height - 60,
-                    villager.homePosition.y + this.random.nextFloat(-30, 30)
-                )
-            )
+
+            if (!housePosition) {
+                // Could not find a valid position, skip this house
+                continue
+            }
+
+            // Record this house's bounding box
+            placedHouses.push({
+                x: housePosition.x - houseFullSize / 2,
+                y: housePosition.y - houseFullSize / 2,
+                width: houseFullSize,
+                height: houseFullSize
+            })
 
             structures.push({
                 id: `house-${villager.id}`,
                 type: 'house',
-                position: { x: houseX, y: houseY },
+                position: housePosition,
                 zoneId: villager.zoneId
             })
         }
@@ -492,6 +527,70 @@ export class VillageGenerator {
         }
 
         log(`Generated ${forestIndex} forest border trees`, 'debug')
+    }
+
+    /**
+     * Find a non-overlapping position for a house within a zone.
+     * Starts near the villager's position and expands search if needed.
+     * @returns The position if found, null if no valid position exists
+     */
+    private findNonOverlappingHousePosition(
+        villagerPos: { x: number; y: number },
+        zone: Zone,
+        placedHouses: BoundingBox[],
+        houseSize: number
+    ): { x: number; y: number } | null {
+        // Padding from zone edges to keep houses fully inside
+        const edgePadding = houseSize / 2 + 10
+        const minX = zone.x + edgePadding
+        const maxX = zone.x + zone.width - edgePadding
+        const minY = zone.y + edgePadding
+        const maxY = zone.y + zone.height - edgePadding
+
+        // If zone is too small for even one house, skip
+        if (maxX <= minX || maxY <= minY) {
+            return null
+        }
+
+        // Try random positions with increasing search radius
+        for (let attempt = 0; attempt < MAX_HOUSE_PLACEMENT_ATTEMPTS; attempt++) {
+            // Expand search radius with each attempt
+            const searchRadius = 30 + attempt * 15
+
+            // Generate a candidate position near the villager
+            const candidateX = this.random.nextFloat(
+                Math.max(minX, villagerPos.x - searchRadius),
+                Math.min(maxX, villagerPos.x + searchRadius)
+            )
+            const candidateY = this.random.nextFloat(
+                Math.max(minY, villagerPos.y - searchRadius),
+                Math.min(maxY, villagerPos.y + searchRadius)
+            )
+
+            // Create bounding box for collision check (centered on position)
+            const candidateBox: BoundingBox = {
+                x: candidateX - houseSize / 2,
+                y: candidateY - houseSize / 2,
+                width: houseSize,
+                height: houseSize
+            }
+
+            // Check if this position overlaps with any placed house
+            let hasOverlap = false
+            for (const existingHouse of placedHouses) {
+                if (boxesOverlap(candidateBox, existingHouse)) {
+                    hasOverlap = true
+                    break
+                }
+            }
+
+            if (!hasOverlap) {
+                return { x: candidateX, y: candidateY }
+            }
+        }
+
+        // Could not find a valid position
+        return null
     }
 
     /**

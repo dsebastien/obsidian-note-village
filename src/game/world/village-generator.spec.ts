@@ -623,6 +623,113 @@ describe('VillageGenerator', () => {
             expect(houses.length).toBeLessThan(10)
         })
 
+        test('should not place houses overlapping each other', () => {
+            // Create enough villagers to potentially cause overlaps without collision detection
+            mockTopTags.push({ tag: 'test', count: 20 })
+            mockNotesByTag.set(
+                'test',
+                Array.from({ length: 20 }, (_, i) => createMockNote(`note${i}`, 'test'))
+            )
+
+            const generator = new VillageGenerator(mockApp, {
+                seed: 'overlap-test',
+                housesPerVillager: 1.0 // All villagers get houses
+            })
+            const data = generator.generate()
+
+            const houses = data.structures.filter((s) => s.type === 'house')
+
+            // House size is 48x48 with 10px spacing = 58x58 effective size
+            const houseSize = 58
+
+            // Check all pairs of houses for overlaps
+            for (let i = 0; i < houses.length; i++) {
+                for (let j = i + 1; j < houses.length; j++) {
+                    const house1 = houses[i]!
+                    const house2 = houses[j]!
+
+                    // Calculate bounding boxes (centered on position)
+                    const box1 = {
+                        x: house1.position.x - houseSize / 2,
+                        y: house1.position.y - houseSize / 2,
+                        width: houseSize,
+                        height: houseSize
+                    }
+                    const box2 = {
+                        x: house2.position.x - houseSize / 2,
+                        y: house2.position.y - houseSize / 2,
+                        width: houseSize,
+                        height: houseSize
+                    }
+
+                    // Check for overlap
+                    const overlaps =
+                        box1.x < box2.x + box2.width &&
+                        box1.x + box1.width > box2.x &&
+                        box1.y < box2.y + box2.height &&
+                        box1.y + box1.height > box2.y
+
+                    expect(overlaps).toBe(false)
+                }
+            }
+        })
+
+        test('should skip houses when zone is too crowded', () => {
+            // Create many villagers in a single zone to force some houses to be skipped
+            mockTopTags.push({ tag: 'crowded', count: 50 })
+            mockNotesByTag.set(
+                'crowded',
+                Array.from({ length: 50 }, (_, i) => createMockNote(`note${i}`, 'crowded'))
+            )
+
+            const generator = new VillageGenerator(mockApp, {
+                seed: 'crowded-test',
+                maxVillagers: 50,
+                housesPerVillager: 1.0 // Try to give all villagers houses
+            })
+            const data = generator.generate()
+
+            const houses = data.structures.filter((s) => s.type === 'house')
+            const villagers = data.villagers
+
+            // With 50 villagers in one zone (300x300), not all can fit houses (48x48 + spacing)
+            // Zone area ~90000, each house needs ~3364 (58x58), so max ~27 houses theoretically
+            // Due to random placement, likely fewer will fit
+            expect(houses.length).toBeLessThan(villagers.length)
+            expect(houses.length).toBeGreaterThan(0)
+        })
+
+        test('should place houses deterministically with same seed', () => {
+            mockTopTags.push({ tag: 'test', count: 10 })
+            mockNotesByTag.set(
+                'test',
+                Array.from({ length: 10 }, (_, i) => createMockNote(`note${i}`, 'test'))
+            )
+
+            const gen1 = new VillageGenerator(mockApp, {
+                seed: 'deterministic',
+                housesPerVillager: 0.8
+            })
+            const gen2 = new VillageGenerator(mockApp, {
+                seed: 'deterministic',
+                housesPerVillager: 0.8
+            })
+
+            const data1 = gen1.generate()
+            const data2 = gen2.generate()
+
+            const houses1 = data1.structures.filter((s) => s.type === 'house')
+            const houses2 = data2.structures.filter((s) => s.type === 'house')
+
+            expect(houses1.length).toBe(houses2.length)
+
+            // Positions should match
+            for (let i = 0; i < houses1.length; i++) {
+                expect(houses1[i]?.position.x).toBe(houses2[i]?.position.x)
+                expect(houses1[i]?.position.y).toBe(houses2[i]?.position.y)
+            }
+        })
+
         test('should generate forest border trees', () => {
             mockTopTags.push({ tag: 'test', count: 10 })
             mockNotesByTag.set('test', [])
