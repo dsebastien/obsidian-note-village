@@ -179,8 +179,11 @@ export class VillageView extends ItemView {
     private async handleVillagerInteraction(villager: Villager): Promise<void> {
         log('Villager interaction', 'debug', { name: villager.getNoteName() })
 
-        // Save previous conversation if any
+        // Save previous conversation and resume previous villager's movement
         await this.saveCurrentConversation()
+        if (this.currentVillager) {
+            this.currentVillager.resumeWandering()
+        }
 
         this.currentVillager = villager
 
@@ -196,6 +199,9 @@ export class VillageView extends ItemView {
                 noteContent
             )
         }
+
+        // Pause villager movement during conversation
+        villager.pauseWandering()
 
         // Open chat panel
         if (this.chatPanel) {
@@ -218,6 +224,12 @@ export class VillageView extends ItemView {
     private async handleChatClose(): Promise<void> {
         await this.saveCurrentConversation()
         this.speechBubble?.hide()
+
+        // Resume villager movement after conversation ends
+        if (this.currentVillager) {
+            this.currentVillager.resumeWandering()
+        }
+
         this.currentVillager = null
         this.handleSidebarStateChange()
     }

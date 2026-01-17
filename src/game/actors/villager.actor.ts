@@ -228,4 +228,24 @@ export class Villager extends ex.Actor {
     getDirectionComponent(): DirectionComponent {
         return this.directionComponent
     }
+
+    /**
+     * Pause wandering (e.g., during conversation)
+     */
+    pauseWandering(): void {
+        const wanderer = this.get(WandererComponent)
+        if (wanderer) {
+            wanderer.paused = true
+        }
+    }
+
+    /**
+     * Resume wandering (e.g., after conversation ends)
+     */
+    resumeWandering(): void {
+        const wanderer = this.get(WandererComponent)
+        if (wanderer) {
+            wanderer.paused = false
+        }
+    }
 }

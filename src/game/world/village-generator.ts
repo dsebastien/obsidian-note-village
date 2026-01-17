@@ -406,22 +406,6 @@ export class VillageGenerator {
             })
         }
 
-        // Decorations (only fences) within each zone - trees are now in the forest border
-        for (const zone of zones) {
-            const numDecorations = Math.floor(zone.noteCount * this.options.decorationDensity * 2)
-
-            for (let i = 0; i < numDecorations; i++) {
-                const pos = this.random.nextPointInRect(zone.x, zone.y, zone.width, zone.height, 10)
-
-                structures.push({
-                    id: `decoration-${zone.id}-${i}`,
-                    type: 'fence',
-                    position: pos,
-                    zoneId: zone.id
-                })
-            }
-        }
-
         // Generate forest border around the world
         this.generateForestBorder(structures)
 

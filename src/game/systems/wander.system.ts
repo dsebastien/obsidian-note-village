@@ -21,6 +21,16 @@ export class WanderSystem extends ex.System {
 
             if (!wanderer || !transform) continue
 
+            // Skip processing if paused (e.g., during conversation)
+            if (wanderer.paused) {
+                // Stop movement when paused
+                const actor = entity as ex.Actor
+                if (actor.vel) {
+                    actor.vel = ex.Vector.Zero
+                }
+                continue
+            }
+
             // Update state timer
             wanderer.stateTimer -= delta
 

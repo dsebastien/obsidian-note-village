@@ -15,6 +15,9 @@ export class WandererComponent extends ex.Component {
     /** Current target position when walking */
     targetPosition: ex.Vector | null = null
 
+    /** When true, wandering is paused (e.g., during conversation) */
+    paused = false
+
     constructor(
         public homePosition: ex.Vector,
         public wanderRadius: number = 50,

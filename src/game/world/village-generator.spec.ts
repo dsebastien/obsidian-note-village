@@ -623,20 +623,17 @@ describe('VillageGenerator', () => {
             expect(houses.length).toBeLessThan(10)
         })
 
-        test('should generate decorations based on density', () => {
+        test('should generate forest border trees', () => {
             mockTopTags.push({ tag: 'test', count: 10 })
             mockNotesByTag.set('test', [])
 
             const generator = new VillageGenerator(mockApp, {
-                seed: 'test',
-                decorationDensity: 0.2
+                seed: 'test'
             })
             const data = generator.generate()
 
-            const decorations = data.structures.filter(
-                (s) => s.type === 'tree' || s.type === 'fence'
-            )
-            expect(decorations.length).toBeGreaterThan(0)
+            const forestTrees = data.structures.filter((s) => s.type === 'forest')
+            expect(forestTrees.length).toBeGreaterThan(0)
         })
     })
 
