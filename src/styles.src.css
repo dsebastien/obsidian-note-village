@@ -110,6 +110,72 @@
     max-width: 85%;
 }
 
+/* Text selection in chat messages */
+.note-village-chat-message-content {
+    user-select: text;
+    cursor: text;
+}
+
+/* Message wrapper for copy button positioning */
+.note-village-chat-message-wrapper {
+    @apply relative inline-block;
+    max-width: 85%;
+}
+
+/* Copy button for individual messages */
+.note-village-chat-copy-btn {
+    @apply absolute flex items-center justify-center p-1 cursor-pointer;
+    @apply transition-all duration-150 opacity-0;
+    top: 4px;
+    right: -24px;
+    width: 20px;
+    height: 20px;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-s);
+    color: var(--text-muted);
+}
+
+.note-village-chat-message:hover .note-village-chat-copy-btn {
+    @apply opacity-100;
+}
+
+.note-village-chat-copy-btn:hover {
+    background-color: var(--background-modifier-hover);
+    color: var(--text-normal);
+}
+
+.note-village-chat-copy-btn.copied {
+    color: var(--text-success, #28a745);
+}
+
+/* Copy all button in header */
+.note-village-chat-header-actions {
+    @apply flex items-center gap-2;
+}
+
+.note-village-chat-copy-all {
+    @apply flex items-center justify-center p-1 cursor-pointer;
+    @apply transition-all duration-150;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-s);
+    color: var(--text-muted);
+}
+
+.note-village-chat-copy-all:hover {
+    background-color: var(--background-modifier-hover);
+    color: var(--text-normal);
+}
+
+.note-village-chat-copy-all:disabled {
+    @apply opacity-50 cursor-not-allowed;
+}
+
+.note-village-chat-copy-all.copied {
+    color: var(--text-success, #28a745);
+}
+
 .note-village-chat-message-time {
     @apply mt-1;
     font-size: 0.7em;

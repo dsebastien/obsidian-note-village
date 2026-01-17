@@ -14,6 +14,7 @@ export class ChatPanel {
     private textInput: HTMLTextAreaElement
     private sendButton: HTMLButtonElement
     private closeButton: HTMLButtonElement
+    private copyAllButton: HTMLButtonElement
 
     private currentVillager: Villager | null = null
     private messages: ChatMessage[] = []
@@ -34,7 +35,17 @@ export class ChatPanel {
         const titleEl = this.header.createDiv({ cls: 'note-village-chat-title' })
         titleEl.setText('Chat')
 
-        this.closeButton = this.header.createEl('button', { cls: 'note-village-chat-close' })
+        // Header actions (copy all + close)
+        const headerActions = this.header.createDiv({ cls: 'note-village-chat-header-actions' })
+
+        this.copyAllButton = headerActions.createEl('button', {
+            cls: 'note-village-chat-copy-all',
+            attr: { title: 'Copy entire conversation' }
+        })
+        setIcon(this.copyAllButton, 'copy')
+        this.copyAllButton.addEventListener('click', () => this.copyAllMessages())
+
+        this.closeButton = headerActions.createEl('button', { cls: 'note-village-chat-close' })
         setIcon(this.closeButton, 'x')
         this.closeButton.addEventListener('click', () => this.close())
 
@@ -191,6 +202,7 @@ export class ChatPanel {
      */
     private renderMessages(): void {
         this.messagesContainer.empty()
+        this.updateCopyAllButton()
 
         if (this.messages.length === 0) {
             const emptyEl = this.messagesContainer.createDiv({ cls: 'note-village-chat-empty' })
@@ -203,12 +215,100 @@ export class ChatPanel {
                 cls: `note-village-chat-message note-village-chat-message-${message.role}`
             })
 
-            const contentEl = messageEl.createDiv({ cls: 'note-village-chat-message-content' })
+            // Wrapper for content + copy button positioning
+            const wrapperEl = messageEl.createDiv({ cls: 'note-village-chat-message-wrapper' })
+
+            const contentEl = wrapperEl.createDiv({ cls: 'note-village-chat-message-content' })
             contentEl.setText(message.content)
+
+            // Copy button for individual message
+            const copyBtn = wrapperEl.createEl('button', {
+                cls: 'note-village-chat-copy-btn',
+                attr: { title: 'Copy message' }
+            })
+            setIcon(copyBtn, 'copy')
+            copyBtn.addEventListener('click', (e) => {
+                e.stopPropagation()
+                this.copyMessageToClipboard(message.content, copyBtn)
+            })
 
             const timeEl = messageEl.createDiv({ cls: 'note-village-chat-message-time' })
             timeEl.setText(this.formatTime(message.timestamp))
         }
+    }
+
+    /**
+     * Update copy all button state
+     */
+    private updateCopyAllButton(): void {
+        this.copyAllButton.disabled = this.messages.length === 0
+    }
+
+    /**
+     * Copy a single message to clipboard
+     */
+    private async copyMessageToClipboard(
+        content: string,
+        button: HTMLButtonElement
+    ): Promise<void> {
+        try {
+            await navigator.clipboard.writeText(content)
+            this.showCopiedFeedback(button)
+        } catch {
+            // Fallback for environments where clipboard API is not available
+            this.fallbackCopyToClipboard(content)
+            this.showCopiedFeedback(button)
+        }
+    }
+
+    /**
+     * Copy all messages to clipboard
+     */
+    private async copyAllMessages(): Promise<void> {
+        if (this.messages.length === 0) return
+
+        const villagerName = this.currentVillager?.getNoteName() ?? 'Villager'
+        const formattedConversation = this.messages
+            .map((msg) => {
+                const speaker = msg.role === 'user' ? 'You' : villagerName
+                return `${speaker}: ${msg.content}`
+            })
+            .join('\n\n')
+
+        try {
+            await navigator.clipboard.writeText(formattedConversation)
+            this.showCopiedFeedback(this.copyAllButton)
+        } catch {
+            this.fallbackCopyToClipboard(formattedConversation)
+            this.showCopiedFeedback(this.copyAllButton)
+        }
+    }
+
+    /**
+     * Fallback copy method for environments without clipboard API
+     */
+    private fallbackCopyToClipboard(text: string): void {
+        const textArea = document.createElement('textarea')
+        textArea.value = text
+        textArea.style.position = 'fixed'
+        textArea.style.left = '-9999px'
+        document.body.appendChild(textArea)
+        textArea.select()
+        document.execCommand('copy')
+        document.body.removeChild(textArea)
+    }
+
+    /**
+     * Show visual feedback when content is copied
+     */
+    private showCopiedFeedback(button: HTMLButtonElement): void {
+        button.addClass('copied')
+        setIcon(button, 'check')
+
+        setTimeout(() => {
+            button.removeClass('copied')
+            setIcon(button, 'copy')
+        }, 1500)
     }
 
     /**
