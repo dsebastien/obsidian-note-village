@@ -61,6 +61,22 @@ const HOUSE_SPACING = 10
 /** Maximum attempts to find a non-overlapping position for a house */
 const MAX_HOUSE_PLACEMENT_ATTEMPTS = 20
 
+/** Maximum attempts to find a non-overlapping position for a decoration */
+const MAX_DECORATION_PLACEMENT_ATTEMPTS = 15
+
+/** Minimum spacing between decorations */
+const DECORATION_SPACING = 8
+
+/** Decoration sizes for collision detection */
+const DECORATION_SIZES: Record<string, { width: number; height: number }> = {
+    flowerBed: { width: 24, height: 16 },
+    bush: { width: 20, height: 18 },
+    rock: { width: 16, height: 12 },
+    tallGrass: { width: 24, height: 16 },
+    barrel: { width: 16, height: 20 },
+    crate: { width: 16, height: 16 }
+}
+
 /** Bounding box for collision detection */
 interface BoundingBox {
     x: number
@@ -441,10 +457,368 @@ export class VillageGenerator {
             })
         }
 
+        // Convert house bounding boxes to placed structures list for decoration collision
+        const placedStructures: BoundingBox[] = [...placedHouses]
+
+        // Also add benches and fountain to collision list
+        const fountainSize = 48
+        placedStructures.push({
+            x: this.plazaX + this.plazaWidth / 2 - fountainSize / 2,
+            y: this.plazaY + this.plazaHeight / 2 - fountainSize / 2,
+            width: fountainSize,
+            height: fountainSize
+        })
+        for (const offset of benchOffsets) {
+            placedStructures.push({
+                x: this.plazaX + offset.x - 16,
+                y: this.plazaY + offset.y - 10,
+                width: 32,
+                height: 20
+            })
+        }
+
+        // Generate decorations with collision detection
+        this.generateDecorations(zones, structures, placedStructures)
+
         // Generate forest border around the world
         this.generateForestBorder(structures)
 
         return structures
+    }
+
+    /**
+     * Generate decorations throughout the village
+     * Places decorations with collision detection and symmetry
+     */
+    private generateDecorations(
+        zones: Zone[],
+        structures: StructureData[],
+        placedStructures: BoundingBox[]
+    ): void {
+        let decorationIndex = 0
+
+        // 1. Plaza decorations - symmetric flower beds around the plaza edges
+        decorationIndex = this.generatePlazaDecorations(
+            structures,
+            placedStructures,
+            decorationIndex
+        )
+
+        // 2. Zone decorations - varied decorations within each zone
+        for (const zone of zones) {
+            decorationIndex = this.generateZoneDecorations(
+                zone,
+                structures,
+                placedStructures,
+                decorationIndex
+            )
+        }
+
+        log(`Generated ${decorationIndex} decorations`, 'debug')
+    }
+
+    /**
+     * Generate symmetric decorations around the plaza
+     */
+    private generatePlazaDecorations(
+        structures: StructureData[],
+        placedStructures: BoundingBox[],
+        startIndex: number
+    ): number {
+        let index = startIndex
+
+        // Symmetric flower beds along plaza edges
+        const edgeOffset = 15
+        const flowerBedSize = DECORATION_SIZES['flowerBed']!
+
+        // Top edge - symmetrically placed flower beds
+        const topPositions = [
+            { x: this.plazaX + this.plazaWidth * 0.25, y: this.plazaY + edgeOffset },
+            { x: this.plazaX + this.plazaWidth * 0.75, y: this.plazaY + edgeOffset }
+        ]
+
+        // Bottom edge
+        const bottomPositions = [
+            {
+                x: this.plazaX + this.plazaWidth * 0.25,
+                y: this.plazaY + this.plazaHeight - edgeOffset
+            },
+            {
+                x: this.plazaX + this.plazaWidth * 0.75,
+                y: this.plazaY + this.plazaHeight - edgeOffset
+            }
+        ]
+
+        // Left edge
+        const leftPositions = [
+            { x: this.plazaX + edgeOffset, y: this.plazaY + this.plazaHeight * 0.25 },
+            { x: this.plazaX + edgeOffset, y: this.plazaY + this.plazaHeight * 0.75 }
+        ]
+
+        // Right edge
+        const rightPositions = [
+            {
+                x: this.plazaX + this.plazaWidth - edgeOffset,
+                y: this.plazaY + this.plazaHeight * 0.25
+            },
+            {
+                x: this.plazaX + this.plazaWidth - edgeOffset,
+                y: this.plazaY + this.plazaHeight * 0.75
+            }
+        ]
+
+        const allPositions = [
+            ...topPositions,
+            ...bottomPositions,
+            ...leftPositions,
+            ...rightPositions
+        ]
+
+        for (const pos of allPositions) {
+            const box: BoundingBox = {
+                x: pos.x - flowerBedSize.width / 2 - DECORATION_SPACING,
+                y: pos.y - flowerBedSize.height / 2 - DECORATION_SPACING,
+                width: flowerBedSize.width + DECORATION_SPACING * 2,
+                height: flowerBedSize.height + DECORATION_SPACING * 2
+            }
+
+            // Check for overlaps
+            let hasOverlap = false
+            for (const existing of placedStructures) {
+                if (boxesOverlap(box, existing)) {
+                    hasOverlap = true
+                    break
+                }
+            }
+
+            if (!hasOverlap) {
+                structures.push({
+                    id: `decoration-${index++}`,
+                    type: 'flowerBed',
+                    position: pos,
+                    variant: this.random.nextInt(0, 2)
+                })
+                placedStructures.push(box)
+            }
+        }
+
+        return index
+    }
+
+    /**
+     * Generate decorations within a single zone
+     */
+    private generateZoneDecorations(
+        zone: Zone,
+        structures: StructureData[],
+        placedStructures: BoundingBox[],
+        startIndex: number
+    ): number {
+        let index = startIndex
+
+        // Filter structures in this zone for house positions
+        const zoneHouses = structures
+            .filter((s) => s.type === 'house' && s.zoneId === zone.id)
+            .map((s) => s.position)
+
+        // Decoration types and their placement preferences
+        const decorationTypes: Array<{
+            type: string
+            count: number
+            nearHouses: boolean
+            atEdges: boolean
+        }> = [
+            { type: 'bush', count: 2, nearHouses: false, atEdges: true },
+            { type: 'rock', count: 2, nearHouses: false, atEdges: true },
+            { type: 'tallGrass', count: 2, nearHouses: false, atEdges: true },
+            { type: 'barrel', count: 1, nearHouses: true, atEdges: false },
+            { type: 'crate', count: 1, nearHouses: true, atEdges: false }
+        ]
+
+        for (const decorationType of decorationTypes) {
+            for (let i = 0; i < decorationType.count; i++) {
+                const size = DECORATION_SIZES[decorationType.type]!
+                let position: { x: number; y: number } | null = null
+
+                if (decorationType.nearHouses && zoneHouses.length > 0) {
+                    // Place near a house
+                    const house = this.random.pick(zoneHouses)
+                    if (house) {
+                        position = this.findDecorationPosition(
+                            zone,
+                            placedStructures,
+                            size,
+                            house,
+                            30 // near radius
+                        )
+                    }
+                } else if (decorationType.atEdges) {
+                    // Place at zone edges
+                    position = this.findEdgeDecorationPosition(zone, placedStructures, size)
+                } else {
+                    // Place randomly in zone
+                    position = this.findDecorationPosition(zone, placedStructures, size, null, 0)
+                }
+
+                if (position) {
+                    const box: BoundingBox = {
+                        x: position.x - size.width / 2 - DECORATION_SPACING,
+                        y: position.y - size.height / 2 - DECORATION_SPACING,
+                        width: size.width + DECORATION_SPACING * 2,
+                        height: size.height + DECORATION_SPACING * 2
+                    }
+
+                    structures.push({
+                        id: `decoration-${index++}`,
+                        type: decorationType.type as
+                            | 'flowerBed'
+                            | 'bush'
+                            | 'rock'
+                            | 'tallGrass'
+                            | 'barrel'
+                            | 'crate',
+                        position,
+                        zoneId: zone.id,
+                        variant: this.random.nextInt(0, 3)
+                    })
+                    placedStructures.push(box)
+                }
+            }
+        }
+
+        return index
+    }
+
+    /**
+     * Find a non-overlapping position for a decoration
+     */
+    private findDecorationPosition(
+        zone: Zone,
+        placedStructures: BoundingBox[],
+        size: { width: number; height: number },
+        nearPoint: { x: number; y: number } | null,
+        nearRadius: number
+    ): { x: number; y: number } | null {
+        const padding = Math.max(size.width, size.height) / 2 + DECORATION_SPACING
+        const minX = zone.x + padding
+        const maxX = zone.x + zone.width - padding
+        const minY = zone.y + padding
+        const maxY = zone.y + zone.height - padding
+
+        if (maxX <= minX || maxY <= minY) return null
+
+        for (let attempt = 0; attempt < MAX_DECORATION_PLACEMENT_ATTEMPTS; attempt++) {
+            let candidateX: number
+            let candidateY: number
+
+            if (nearPoint && nearRadius > 0) {
+                // Place near the given point
+                const angle = this.random.nextFloat(0, Math.PI * 2)
+                const distance = this.random.nextFloat(nearRadius * 0.5, nearRadius)
+                candidateX = nearPoint.x + Math.cos(angle) * distance
+                candidateY = nearPoint.y + Math.sin(angle) * distance
+
+                // Clamp to zone bounds
+                candidateX = Math.max(minX, Math.min(maxX, candidateX))
+                candidateY = Math.max(minY, Math.min(maxY, candidateY))
+            } else {
+                // Random position in zone
+                candidateX = this.random.nextFloat(minX, maxX)
+                candidateY = this.random.nextFloat(minY, maxY)
+            }
+
+            const candidateBox: BoundingBox = {
+                x: candidateX - size.width / 2 - DECORATION_SPACING,
+                y: candidateY - size.height / 2 - DECORATION_SPACING,
+                width: size.width + DECORATION_SPACING * 2,
+                height: size.height + DECORATION_SPACING * 2
+            }
+
+            let hasOverlap = false
+            for (const existing of placedStructures) {
+                if (boxesOverlap(candidateBox, existing)) {
+                    hasOverlap = true
+                    break
+                }
+            }
+
+            if (!hasOverlap) {
+                return { x: candidateX, y: candidateY }
+            }
+        }
+
+        return null
+    }
+
+    /**
+     * Find a position for a decoration at zone edges
+     */
+    private findEdgeDecorationPosition(
+        zone: Zone,
+        placedStructures: BoundingBox[],
+        size: { width: number; height: number }
+    ): { x: number; y: number } | null {
+        const padding = Math.max(size.width, size.height) / 2 + DECORATION_SPACING
+        const edgeMargin = 30 // How close to the edge
+
+        for (let attempt = 0; attempt < MAX_DECORATION_PLACEMENT_ATTEMPTS; attempt++) {
+            // Pick a random edge (0=top, 1=right, 2=bottom, 3=left)
+            const edge = this.random.nextInt(0, 3)
+            let candidateX: number
+            let candidateY: number
+
+            switch (edge) {
+                case 0: // Top edge
+                    candidateX = this.random.nextFloat(
+                        zone.x + padding,
+                        zone.x + zone.width - padding
+                    )
+                    candidateY = zone.y + edgeMargin
+                    break
+                case 1: // Right edge
+                    candidateX = zone.x + zone.width - edgeMargin
+                    candidateY = this.random.nextFloat(
+                        zone.y + padding,
+                        zone.y + zone.height - padding
+                    )
+                    break
+                case 2: // Bottom edge
+                    candidateX = this.random.nextFloat(
+                        zone.x + padding,
+                        zone.x + zone.width - padding
+                    )
+                    candidateY = zone.y + zone.height - edgeMargin
+                    break
+                default: // Left edge
+                    candidateX = zone.x + edgeMargin
+                    candidateY = this.random.nextFloat(
+                        zone.y + padding,
+                        zone.y + zone.height - padding
+                    )
+                    break
+            }
+
+            const candidateBox: BoundingBox = {
+                x: candidateX - size.width / 2 - DECORATION_SPACING,
+                y: candidateY - size.height / 2 - DECORATION_SPACING,
+                width: size.width + DECORATION_SPACING * 2,
+                height: size.height + DECORATION_SPACING * 2
+            }
+
+            let hasOverlap = false
+            for (const existing of placedStructures) {
+                if (boxesOverlap(candidateBox, existing)) {
+                    hasOverlap = true
+                    break
+                }
+            }
+
+            if (!hasOverlap) {
+                return { x: candidateX, y: candidateY }
+            }
+        }
+
+        return null
     }
 
     /**

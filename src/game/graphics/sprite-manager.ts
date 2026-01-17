@@ -62,7 +62,21 @@ export class SpriteManager {
         log('SpriteManager: Villager sprites loaded', 'debug')
 
         // Pre-generate structure sprites
-        const structureTypes = ['house', 'tree', 'fountain', 'bench', 'sign', 'fence']
+        const structureTypes = [
+            'house',
+            'tree',
+            'fountain',
+            'bench',
+            'sign',
+            'fence',
+            // Decorations (Phase 1)
+            'flowerBed',
+            'bush',
+            'rock',
+            'tallGrass',
+            'barrel',
+            'crate'
+        ]
         for (const type of structureTypes) {
             for (let variant = 0; variant < 4; variant++) {
                 const key = `${type}-${variant}`

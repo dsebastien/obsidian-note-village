@@ -633,6 +633,19 @@ export function generateStructureSprite(type: string, variant: number = 0): HTML
             return generateSignSprite()
         case 'fence':
             return generateFenceSprite()
+        // Decorations (Phase 1)
+        case 'flowerBed':
+            return generateFlowerBedSprite(variant)
+        case 'bush':
+            return generateBushSprite(variant)
+        case 'rock':
+            return generateRockSprite(variant)
+        case 'tallGrass':
+            return generateTallGrassSprite(variant)
+        case 'barrel':
+            return generateBarrelSprite(variant)
+        case 'crate':
+            return generateCrateSprite(variant)
         default:
             return generateDefaultSprite()
     }
@@ -945,6 +958,315 @@ function generateDefaultSprite(): HTMLCanvasElement {
 
     ctx.fillStyle = '#808080'
     ctx.fillRect(0, 0, 16, 16)
+
+    return canvas
+}
+
+/**
+ * Generate a flower bed decoration (24x16)
+ * Colorful clusters of flowers in 3 color variants
+ */
+function generateFlowerBedSprite(variant: number): HTMLCanvasElement {
+    const canvas = document.createElement('canvas')
+    canvas.width = 24
+    canvas.height = 16
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return canvas
+
+    // Flower color palettes
+    const flowerPalettes = [
+        { primary: '#FF6B6B', secondary: '#FFE66D', accent: '#4ECDC4' }, // Red/Yellow/Teal
+        { primary: '#9B59B6', secondary: '#F39C12', accent: '#E74C3C' }, // Purple/Orange/Red
+        { primary: '#FF69B4', secondary: '#87CEEB', accent: '#FFD700' } // Pink/Blue/Gold
+    ]
+    const palette = flowerPalettes[variant % flowerPalettes.length]!
+
+    // Ground/dirt base
+    ctx.fillStyle = '#8B7355'
+    ctx.fillRect(2, 10, 20, 6)
+    ctx.fillStyle = '#6B5335'
+    ctx.fillRect(2, 14, 20, 2)
+
+    // Green leaves/stems base
+    ctx.fillStyle = '#228B22'
+    for (let i = 0; i < 5; i++) {
+        const x = 4 + i * 4
+        ctx.fillRect(x, 8, 2, 4)
+        ctx.fillRect(x - 1, 9, 1, 2)
+        ctx.fillRect(x + 2, 9, 1, 2)
+    }
+
+    // Flowers (small colored circles)
+    const flowerPositions = [
+        { x: 4, y: 4, color: palette.primary },
+        { x: 8, y: 3, color: palette.secondary },
+        { x: 12, y: 5, color: palette.accent },
+        { x: 16, y: 3, color: palette.primary },
+        { x: 20, y: 4, color: palette.secondary }
+    ]
+
+    for (const flower of flowerPositions) {
+        // Flower petals
+        ctx.fillStyle = flower.color
+        ctx.fillRect(flower.x - 1, flower.y, 3, 3)
+        ctx.fillRect(flower.x, flower.y - 1, 1, 1)
+        ctx.fillRect(flower.x, flower.y + 3, 1, 1)
+        ctx.fillRect(flower.x - 2, flower.y + 1, 1, 1)
+        ctx.fillRect(flower.x + 2, flower.y + 1, 1, 1)
+
+        // Flower center
+        ctx.fillStyle = '#FFD700'
+        ctx.fillRect(flower.x, flower.y + 1, 1, 1)
+    }
+
+    return canvas
+}
+
+/**
+ * Generate a bush decoration (20x18)
+ * Small shrubs with 2 shape variants
+ */
+function generateBushSprite(variant: number): HTMLCanvasElement {
+    const canvas = document.createElement('canvas')
+    canvas.width = 20
+    canvas.height = 18
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return canvas
+
+    const bushColors = [
+        { base: '#2E8B57', light: '#3CB371', dark: '#1E6B47' }, // Sea green
+        { base: '#228B22', light: '#32CD32', dark: '#126B12' } // Forest green
+    ]
+    const colors = bushColors[variant % bushColors.length]!
+
+    // Main bush body
+    ctx.fillStyle = colors.dark
+    drawEllipse(ctx, 10, 12, 9, 6)
+
+    ctx.fillStyle = colors.base
+    drawEllipse(ctx, 10, 10, 8, 6)
+
+    ctx.fillStyle = colors.light
+    drawEllipse(ctx, 8, 8, 5, 4)
+
+    // Bush top highlights
+    ctx.fillStyle = colors.light
+    ctx.fillRect(5, 5, 2, 2)
+    ctx.fillRect(11, 4, 2, 2)
+
+    // Small leaves detail
+    ctx.fillStyle = colors.dark
+    ctx.fillRect(3, 10, 1, 2)
+    ctx.fillRect(16, 11, 1, 2)
+
+    return canvas
+}
+
+/**
+ * Generate a rock decoration (16x12)
+ * Natural boulders in 3 size/shape variants
+ */
+function generateRockSprite(variant: number): HTMLCanvasElement {
+    const canvas = document.createElement('canvas')
+    // Different sizes based on variant
+    const sizes = [
+        { width: 16, height: 12 },
+        { width: 12, height: 10 },
+        { width: 20, height: 14 }
+    ]
+    const size = sizes[variant % sizes.length]!
+    canvas.width = size.width
+    canvas.height = size.height
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return canvas
+
+    const rockColors = {
+        base: '#808080',
+        light: '#A0A0A0',
+        dark: '#606060',
+        shadow: '#404040'
+    }
+
+    const cx = size.width / 2
+    const cy = size.height / 2 + 1
+
+    // Rock shadow
+    ctx.fillStyle = rockColors.shadow
+    drawEllipse(ctx, cx, cy + 2, size.width / 2 - 1, size.height / 3)
+
+    // Main rock body
+    ctx.fillStyle = rockColors.dark
+    drawEllipse(ctx, cx, cy, size.width / 2 - 1, size.height / 2 - 1)
+
+    ctx.fillStyle = rockColors.base
+    drawEllipse(ctx, cx - 1, cy - 1, size.width / 2 - 2, size.height / 2 - 2)
+
+    // Highlight
+    ctx.fillStyle = rockColors.light
+    ctx.fillRect(cx - 3, cy - 3, 3, 2)
+    ctx.fillRect(cx - 2, cy - 4, 2, 1)
+
+    // Cracks/texture
+    ctx.fillStyle = rockColors.dark
+    ctx.fillRect(cx + 1, cy, 1, 2)
+    ctx.fillRect(cx - 1, cy + 1, 2, 1)
+
+    return canvas
+}
+
+/**
+ * Generate tall grass decoration (24x16)
+ * Swaying grass clumps for zone edges
+ */
+function generateTallGrassSprite(variant: number): HTMLCanvasElement {
+    const canvas = document.createElement('canvas')
+    canvas.width = 24
+    canvas.height = 16
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return canvas
+
+    const grassColors = [
+        { base: '#4A7C59', light: '#6B9C7A', dark: '#3A6A4A' },
+        { base: '#5A8C69', light: '#7BAC8A', dark: '#4A7C59' }
+    ]
+    const colors = grassColors[variant % grassColors.length]!
+
+    // Draw grass blades - varying heights for natural look
+    const bladePositions = [
+        { x: 2, height: 12, lean: 0 },
+        { x: 5, height: 14, lean: -1 },
+        { x: 8, height: 10, lean: 1 },
+        { x: 11, height: 15, lean: 0 },
+        { x: 14, height: 11, lean: -1 },
+        { x: 17, height: 13, lean: 1 },
+        { x: 20, height: 9, lean: 0 }
+    ]
+
+    for (const blade of bladePositions) {
+        const baseY = 16
+        const tipY = baseY - blade.height
+
+        // Draw blade with slight thickness
+        ctx.fillStyle = colors.dark
+        ctx.fillRect(blade.x, tipY + 2, 2, blade.height - 2)
+
+        ctx.fillStyle = colors.base
+        ctx.fillRect(blade.x, tipY + 1, 2, blade.height - 3)
+
+        // Tip
+        ctx.fillStyle = colors.light
+        ctx.fillRect(blade.x + blade.lean, tipY, 1, 2)
+    }
+
+    return canvas
+}
+
+/**
+ * Generate barrel decoration (16x20)
+ * Wooden storage barrel
+ */
+function generateBarrelSprite(variant: number): HTMLCanvasElement {
+    const canvas = document.createElement('canvas')
+    canvas.width = 16
+    canvas.height = 20
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return canvas
+
+    const barrelColors = [
+        { wood: '#8B5A2B', woodDark: '#6B4423', band: '#4A4A4A' },
+        { wood: '#A0522D', woodDark: '#804020', band: '#3A3A3A' }
+    ]
+    const colors = barrelColors[variant % barrelColors.length]!
+
+    // Barrel body
+    ctx.fillStyle = colors.wood
+    ctx.fillRect(2, 4, 12, 14)
+
+    // Barrel sides (curved look via color)
+    ctx.fillStyle = colors.woodDark
+    ctx.fillRect(2, 4, 2, 14)
+    ctx.fillRect(12, 4, 2, 14)
+
+    // Barrel top
+    ctx.fillStyle = colors.woodDark
+    drawEllipse(ctx, 8, 4, 6, 2)
+    ctx.fillStyle = colors.wood
+    drawEllipse(ctx, 8, 3, 5, 2)
+
+    // Metal bands
+    ctx.fillStyle = colors.band
+    ctx.fillRect(1, 6, 14, 2)
+    ctx.fillRect(1, 14, 14, 2)
+
+    // Band highlights
+    ctx.fillStyle = '#6A6A6A'
+    ctx.fillRect(3, 6, 2, 1)
+    ctx.fillRect(3, 14, 2, 1)
+
+    // Wood grain lines
+    ctx.fillStyle = colors.woodDark
+    ctx.fillRect(5, 8, 1, 5)
+    ctx.fillRect(9, 8, 1, 5)
+
+    return canvas
+}
+
+/**
+ * Generate crate decoration (16x16)
+ * Wooden supply crate
+ */
+function generateCrateSprite(variant: number): HTMLCanvasElement {
+    const canvas = document.createElement('canvas')
+    canvas.width = 16
+    canvas.height = 16
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return canvas
+
+    const crateColors = [
+        { wood: '#C4A77D', woodDark: '#A48765', plank: '#8B7355' },
+        { wood: '#DEB887', woodDark: '#BEA077', plank: '#9B8365' }
+    ]
+    const colors = crateColors[variant % crateColors.length]!
+
+    // Main crate body
+    ctx.fillStyle = colors.wood
+    ctx.fillRect(1, 1, 14, 14)
+
+    // Top edge shadow
+    ctx.fillStyle = colors.woodDark
+    ctx.fillRect(1, 1, 14, 2)
+
+    // Right edge shadow
+    ctx.fillStyle = colors.woodDark
+    ctx.fillRect(13, 1, 2, 14)
+
+    // Planks horizontal
+    ctx.fillStyle = colors.plank
+    ctx.fillRect(1, 5, 14, 1)
+    ctx.fillRect(1, 10, 14, 1)
+
+    // Cross planks (X pattern)
+    ctx.fillStyle = colors.plank
+    // Diagonal from top-left to bottom-right
+    for (let i = 0; i < 12; i++) {
+        ctx.fillRect(2 + i, 2 + i, 1, 1)
+    }
+    // Diagonal from top-right to bottom-left
+    for (let i = 0; i < 12; i++) {
+        ctx.fillRect(13 - i, 2 + i, 1, 1)
+    }
+
+    // Corner nails
+    ctx.fillStyle = '#4A4A4A'
+    ctx.fillRect(2, 2, 1, 1)
+    ctx.fillRect(13, 2, 1, 1)
+    ctx.fillRect(2, 13, 1, 1)
+    ctx.fillRect(13, 13, 1, 1)
+
+    // Outline
+    ctx.strokeStyle = '#5D4037'
+    ctx.lineWidth = 1
+    ctx.strokeRect(1, 1, 14, 14)
 
     return canvas
 }

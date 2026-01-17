@@ -622,7 +622,8 @@ export class VillageScene extends ex.Scene {
      */
     private spawnStructure(structure: StructureData): void {
         const pos = toExVector(structure.position)
-        const variant = this.getStructureVariant(structure.id)
+        // Use variant from structure data if available, otherwise derive from ID
+        const variant = structure.variant ?? this.getStructureVariant(structure.id)
 
         // Use 'tree' sprite for forest structures
         const spriteType = structure.type === 'forest' ? 'tree' : structure.type
@@ -703,6 +704,19 @@ export class VillageScene extends ex.Scene {
                 return { width: 24, height: 32 }
             case 'fence':
                 return { width: 24, height: 20 }
+            // Decorations
+            case 'flowerBed':
+                return { width: 24, height: 16 }
+            case 'bush':
+                return { width: 20, height: 18 }
+            case 'rock':
+                return { width: 16, height: 12 }
+            case 'tallGrass':
+                return { width: 24, height: 16 }
+            case 'barrel':
+                return { width: 16, height: 20 }
+            case 'crate':
+                return { width: 16, height: 16 }
             default:
                 return { width: 24, height: 24 }
         }
@@ -727,6 +741,19 @@ export class VillageScene extends ex.Scene {
                 return -1
             case 'fence':
                 return -1
+            // Decorations - mostly ground level
+            case 'flowerBed':
+                return -2 // Below most structures
+            case 'bush':
+                return 0 // Same level as signs
+            case 'rock':
+                return -2 // Ground level
+            case 'tallGrass':
+                return -2 // Ground level
+            case 'barrel':
+                return 0 // Same level as signs
+            case 'crate':
+                return 0 // Same level as signs
             default:
                 return 0
         }
@@ -764,6 +791,19 @@ export class VillageScene extends ex.Scene {
                 return ex.Color.fromHex('#4169E1')
             case 'bench':
                 return ex.Color.fromHex('#8B7355')
+            // Decorations
+            case 'flowerBed':
+                return ex.Color.fromHex('#FF6B6B') // Red flowers
+            case 'bush':
+                return ex.Color.fromHex('#2E8B57') // Sea green
+            case 'rock':
+                return ex.Color.fromHex('#808080') // Gray
+            case 'tallGrass':
+                return ex.Color.fromHex('#4A7C59') // Green grass
+            case 'barrel':
+                return ex.Color.fromHex('#8B5A2B') // Wood brown
+            case 'crate':
+                return ex.Color.fromHex('#C4A77D') // Light wood
             default:
                 return ex.Color.Gray
         }
