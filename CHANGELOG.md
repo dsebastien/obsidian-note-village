@@ -1,3 +1,13 @@
+## [0.0.4](https://github.com/dsebastien/obsidian-note-village/compare/0.0.3...0.0.4) (2026-01-30)
+
+### Features
+
+* **all:** updated ([d2df4a9](https://github.com/dsebastien/obsidian-note-village/commit/d2df4a99cba2afc9893b7b74ef85d1ccaf1a713b))
+* **all:** updated release ([1dca003](https://github.com/dsebastien/obsidian-note-village/commit/1dca0034b880ba61ea68c3406dcfdef0174ddf62))
+
+### Bug Fixes
+
+* **all:** updated lock file ([ed2f18d](https://github.com/dsebastien/obsidian-note-village/commit/ed2f18d8a296897371a930c000b12da77e2e7cff))
 ## [0.0.3](https://github.com/dsebastien/obsidian-note-village/compare/0.0.2...0.0.3) (2026-01-30)
 
 ### Features
