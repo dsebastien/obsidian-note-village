@@ -28,11 +28,8 @@ jobs:
             - name: Lint
               run: bun run lint
 
-            - name: Clear Bun cache
-              run: bun pm cache rm
-
             - name: Test
-              run: bun test
+              run: bun test --max-concurrency=1
 
             - name: Format check
               run: bun run format:check
