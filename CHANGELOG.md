@@ -1,3 +1,8 @@
+## [0.0.3](https://github.com/dsebastien/obsidian-note-village/compare/0.0.2...0.0.3) (2026-01-30)
+
+### Features
+
+* **all:** added release and validate scripts ([5d3666e](https://github.com/dsebastien/obsidian-note-village/commit/5d3666eb1738a4dfca963e8f03e0fc48a0ebbe9f))
 ## [0.0.2](https://github.com/dsebastien/obsidian-note-village/compare/0.0.1...0.0.2) (2026-01-17)
 
 ### Features
