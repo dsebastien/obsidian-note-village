@@ -1,15 +1,6 @@
-import { describe, test, expect, beforeEach, mock } from 'bun:test'
+import { describe, test, expect, beforeEach } from 'bun:test'
 import type { App, CachedMetadata, TFile } from 'obsidian'
-
-// Mock the log module before importing NoteScanner
-mock.module('../utils/log', () => ({
-    log: () => {},
-    LOG_SEPARATOR: '',
-    LOG_PREFIX: ''
-}))
-
-// Import after mocking
-const { NoteScanner } = await import('./note-scanner')
+import { NoteScanner } from './note-scanner'
 
 // Helper to create mock TFile
 function createMockFile(path: string, basename: string, size = 1000): TFile {

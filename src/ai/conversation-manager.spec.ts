@@ -34,17 +34,6 @@ mock.module('@anthropic-ai/sdk', () => ({
     Anthropic: MockAnthropic
 }))
 
-mock.module('../utils/log', () => ({
-    log: () => {},
-    LOG_SEPARATOR: '',
-    LOG_PREFIX: ''
-}))
-
-mock.module('./system-prompts', () => ({
-    generateVillagerPrompt: (_name: string, _content: string) => 'Mock system prompt',
-    VILLAGER_SYSTEM_PROMPT: ''
-}))
-
 // Import after mocking
 const { ConversationManager } = await import('./conversation-manager')
 
@@ -184,7 +173,7 @@ describe('ConversationManager', () => {
             expect(mockMessagesCreate).toHaveBeenCalledWith({
                 model: AIModel.CLAUDE_3_5_SONNET,
                 max_tokens: 300,
-                system: 'Mock system prompt',
+                system: expect.any(String),
                 messages: expect.any(Array)
             })
         })

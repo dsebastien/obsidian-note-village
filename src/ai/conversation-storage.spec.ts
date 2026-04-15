@@ -1,16 +1,7 @@
-import { describe, test, expect, beforeEach, mock } from 'bun:test'
+import { describe, test, expect, beforeEach } from 'bun:test'
 import type { App, TFile, TAbstractFile, TFolder } from 'obsidian'
 import type { ConversationState } from '#types/conversation-state.intf'
-
-// Mock the log module before importing
-mock.module('../utils/log', () => ({
-    log: () => {},
-    LOG_SEPARATOR: '',
-    LOG_PREFIX: ''
-}))
-
-// Import after mocking
-const { ConversationStorage } = await import('./conversation-storage')
+import { ConversationStorage } from './conversation-storage'
 
 // Helper to create mock conversation state
 function createConversation(overrides: Partial<ConversationState> = {}): ConversationState {

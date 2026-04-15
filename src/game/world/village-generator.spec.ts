@@ -3,13 +3,6 @@ import type { App, TFile } from 'obsidian'
 import type { TagCount } from '#types/tag-count.intf'
 import type { ScannedNote } from '#types/scanned-note.intf'
 
-// Mock dependencies before importing
-mock.module('../../utils/log', () => ({
-    log: () => {},
-    LOG_SEPARATOR: '',
-    LOG_PREFIX: ''
-}))
-
 // Create mock implementations
 const mockTopTags: TagCount[] = []
 const mockNotesByTag = new Map<string, ScannedNote[]>()
