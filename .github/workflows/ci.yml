@@ -28,6 +28,16 @@ jobs:
             - name: Lint
               run: bun run lint
 
+            - name: Debug file contents
+              run: |
+                  echo "=== src/utils/log.ts ==="
+                  cat -A src/utils/log.ts
+                  echo "=== src/ai/system-prompts.ts ==="
+                  cat -A src/ai/system-prompts.ts
+                  echo "=== hex dumps ==="
+                  od -c src/utils/log.ts | head -20
+                  od -c src/ai/system-prompts.ts | head -20
+
             - name: Test
               run: bun test
 
