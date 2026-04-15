@@ -1,3 +1,9 @@
+---
+title: Overview
+nav_order: 1
+permalink: /
+---
+
 # Note Village
 
 Transform your Obsidian vault into a living 2D pixel art village where your notes become villagers you can explore and interact with using AI.

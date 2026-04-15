@@ -1,3 +1,8 @@
+---
+title: AI conversations
+nav_order: 10
+---
+
 # AI Conversations
 
 Note Village uses Claude AI to bring your notes to life through conversations.

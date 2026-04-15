@@ -1,3 +1,8 @@
+---
+title: Village generation
+nav_order: 11
+---
+
 # Village Generation
 
 Note Village creates a procedurally-generated village based on your vault's structure.
