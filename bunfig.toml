@@ -19,7 +19,6 @@ bun = true
 coverage = false
 onlyFailures = true
 preload = ["./src/test/setup.ts"]
-smol = true
 
 [test.reporter]
-dots = false
+dots = true
