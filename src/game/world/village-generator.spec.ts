@@ -5,7 +5,9 @@ import type { ScannedNote } from '#types/scanned-note.intf'
 
 // Mock dependencies before importing
 mock.module('../../utils/log', () => ({
-    log: () => {}
+    log: () => {},
+    LOG_SEPARATOR: '',
+    LOG_PREFIX: ''
 }))
 
 // Create mock implementations

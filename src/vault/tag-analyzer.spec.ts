@@ -3,7 +3,9 @@ import type { App, CachedMetadata, TFile } from 'obsidian'
 
 // Mock the log module before importing TagAnalyzer
 mock.module('../utils/log', () => ({
-    log: () => {}
+    log: () => {},
+    LOG_SEPARATOR: '',
+    LOG_PREFIX: ''
 }))
 
 // Import after mocking

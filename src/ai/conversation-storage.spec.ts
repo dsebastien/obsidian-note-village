@@ -4,7 +4,9 @@ import type { ConversationState } from '#types/conversation-state.intf'
 
 // Mock the log module before importing
 mock.module('../utils/log', () => ({
-    log: () => {}
+    log: () => {},
+    LOG_SEPARATOR: '',
+    LOG_PREFIX: ''
 }))
 
 // Import after mocking

@@ -35,11 +35,14 @@ mock.module('@anthropic-ai/sdk', () => ({
 }))
 
 mock.module('../utils/log', () => ({
-    log: () => {}
+    log: () => {},
+    LOG_SEPARATOR: '',
+    LOG_PREFIX: ''
 }))
 
 mock.module('./system-prompts', () => ({
-    generateVillagerPrompt: (_name: string, _content: string) => 'Mock system prompt'
+    generateVillagerPrompt: (_name: string, _content: string) => 'Mock system prompt',
+    VILLAGER_SYSTEM_PROMPT: ''
 }))
 
 // Import after mocking
