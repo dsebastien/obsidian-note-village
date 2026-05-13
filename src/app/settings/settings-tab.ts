@@ -4,6 +4,7 @@ import { AIModel } from '#types/ai-model.intf'
 import { RenderQuality } from '#types/render-quality.intf'
 import { FolderSuggester } from '../../ui/folder-suggester'
 import { TagSuggester } from '../../ui/tag-suggester'
+import { BUY_ME_A_COFFEE_BADGE_DATA_URL } from '../assets/buy-me-a-coffee'
 
 export class NoteVillageSettingTab extends PluginSettingTab {
     plugin: NoteVillagePlugin
@@ -364,8 +365,7 @@ export class NoteVillageSettingTab extends PluginSettingTab {
             href: 'https://www.buymeacoffee.com/dsebastien'
         })
         const imgEl = linkEl.createEl('img')
-        imgEl.src =
-            'https://github.com/dsebastien/obsidian-plugin-template/blob/main/src/assets/buy-me-a-coffee.png?raw=true'
+        imgEl.src = BUY_ME_A_COFFEE_BADGE_DATA_URL
         imgEl.alt = 'Buy me a coffee'
         imgEl.width = width
     }
