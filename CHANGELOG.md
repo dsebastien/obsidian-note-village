@@ -2,7 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.0](https://github.com/dsebastien/obsidian-note-village/compare/0.0.4...0.1.0) (2026-05-13)
 
+### Features
+
+* **all:** added docs ([1576487](https://github.com/dsebastien/obsidian-note-village/commit/15764876e03f7e8467878c3f30ed835b7142e4ab))
+* **all:** updated scripts ([3201823](https://github.com/dsebastien/obsidian-note-village/commit/3201823c1a9d9292fb6669b2691b0f326aafc488))
+
+### Bug Fixes
+
+* **all:** pin Bun to 1.3.11 in CI to work around test module load regression ([b394bf0](https://github.com/dsebastien/obsidian-note-village/commit/b394bf00f873433a1f22a1e0a37e4f817a951d64))
+* **all:** preserve all module exports in test mocks to prevent CI flakiness ([f54fe50](https://github.com/dsebastien/obsidian-note-village/commit/f54fe50d83fb88cd075543815549a7616753bdda))
+* **all:** remove leaking global module mocks that broke log/system-prompts specs ([446255e](https://github.com/dsebastien/obsidian-note-village/commit/446255efe7e98ec9827f13d7d12b2c67c7faace9))
+* **all:** remove smol and max-concurrency test flags causing CI module load failures ([1b76c54](https://github.com/dsebastien/obsidian-note-village/commit/1b76c547a169763eff81a5fc116763afa7ada37e))
 
 ## [0.0.4](https://github.com/dsebastien/obsidian-note-village/compare/0.0.3...0.0.4) (2026-01-30)
 
@@ -42,4 +54,5 @@ All notable changes to this project will be documented in this file.
 * **all:** moved forest to become the borders of the world ([7d73a5d](https://github.com/dsebastien/obsidian-note-village/commit/7d73a5d7ddbe13d33586b0b4b88ee7e5e957b447))
 * **all:** switch to classic tiles ([f34ede3](https://github.com/dsebastien/obsidian-note-village/commit/f34ede3eb747d2eb510e500d4ae4c464d26dda96))
 * **all:** villagers stop moving while discussing ([8ec4b49](https://github.com/dsebastien/obsidian-note-village/commit/8ec4b49f51e93ef243734846f83a4472a61e880f))
+
 

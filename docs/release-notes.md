@@ -1,9 +1,18 @@
----
-title: Release notes
-nav_order: 98
----
-
 # Release Notes
+
+## 0.1.0 (2026-05-13)
+
+### Features
+
+- **all:** added docs
+- **all:** updated scripts
+
+### Bug Fixes
+
+- **all:** pin Bun to 1.3.11 in CI to work around test module load regression
+- **all:** preserve all module exports in test mocks to prevent CI flakiness
+- **all:** remove leaking global module mocks that broke log/system-prompts specs
+- **all:** remove smol and max-concurrency test flags causing CI module load failures
 
 ## 0.0.4 (2026-01-30)
 
