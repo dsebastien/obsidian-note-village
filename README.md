@@ -21,19 +21,31 @@ Note Village transforms your Obsidian vault into an interactive JRPG-style world
 
 ## Installation
 
-### From Obsidian Community Plugins
+### Community plugins (recommended)
 
-1. Open **Settings** in Obsidian
-2. Go to **Community plugins** and disable **Restricted mode**
-3. Click **Browse** and search for "Note Village"
-4. Click **Install**, then **Enable**
+1. In Obsidian, go to **Settings → Community plugins**.
+2. Disable **Restricted mode** if it's enabled.
+3. Select **Browse**, search for **Note Village**, install it, then enable it.
+
+You can also browse the catalog on the [Obsidian Community](https://community.obsidian.md/) website.
 
 ### Manual installation
 
-1. Download `main.js`, `manifest.json`, and `styles.css` from the latest release
-2. Create a folder `<vault>/.obsidian/plugins/note-village/`
-3. Copy the downloaded files into that folder
-4. Reload Obsidian and enable the plugin in **Settings** > **Community plugins**
+If the plugin isn't listed in the community catalog yet (or you want a specific version):
+
+1. Download `main.js`, `manifest.json`, and `styles.css` from the [latest release](https://github.com/dsebastien/obsidian-note-village/releases).
+2. Copy them into `<Vault>/.obsidian/plugins/note-village/`.
+3. Reload Obsidian and enable **Note Village** in **Settings → Community plugins**.
+
+### BRAT (bleeding edge)
+
+[BRAT](https://github.com/TfTHacker/obsidian42-brat) (Beta Reviewers Auto-update Tool) installs plugins straight from a GitHub repo and keeps them updated automatically. Use this if you want the latest commits — **things might break**.
+
+1. Install **Obsidian42 - BRAT** from **Settings → Community plugins → Browse** and enable it.
+2. Run **BRAT: Add a beta plugin for testing** from the command palette.
+3. Paste `https://github.com/dsebastien/obsidian-note-village`.
+4. Select the latest version and confirm.
+5. Enable **Note Village** in **Settings → Community plugins**.
 
 ## Configuration
 
