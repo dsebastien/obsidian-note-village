@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.2](https://github.com/dsebastien/obsidian-note-village/compare/1.0.1...1.0.2) (2026-07-18)
+
+### Bug Fixes
+
+* **build:** replace placeholder author email in package.json ([06a1c41](https://github.com/dsebastien/obsidian-note-village/commit/06a1c41c30b0327983fe14850c174e5c97d99b62))
+
 ## [1.0.1](https://github.com/dsebastien/obsidian-note-village/compare/1.0.0...1.0.1) (2026-07-17)
 
 ## [1.0.0](https://github.com/dsebastien/obsidian-note-village/compare/0.1.0...1.0.0) (2026-05-16)
@@ -58,6 +64,7 @@ All notable changes to this project will be documented in this file.
 * **all:** moved forest to become the borders of the world ([7d73a5d](https://github.com/dsebastien/obsidian-note-village/commit/7d73a5d7ddbe13d33586b0b4b88ee7e5e957b447))
 * **all:** switch to classic tiles ([f34ede3](https://github.com/dsebastien/obsidian-note-village/commit/f34ede3eb747d2eb510e500d4ae4c464d26dda96))
 * **all:** villagers stop moving while discussing ([8ec4b49](https://github.com/dsebastien/obsidian-note-village/commit/8ec4b49f51e93ef243734846f83a4472a61e880f))
+
 
 
 

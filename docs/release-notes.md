@@ -1,5 +1,11 @@
 # Release Notes
 
+## 1.0.2 (2026-07-18)
+
+### Bug Fixes
+
+- **build:** replace placeholder author email in package.json
+
 ## 1.0.1 (2026-07-17)
 
 ## 1.0.0 (2026-05-16)
