@@ -1,5 +1,11 @@
 # Release Notes
 
+## 1.1.0 (2026-07-18)
+
+### Bug Fixes
+
+- **plugin:** resolve Obsidian community-catalog review findings
+
 ## 1.0.2 (2026-07-18)
 
 ### Bug Fixes
