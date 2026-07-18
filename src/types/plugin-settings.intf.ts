@@ -22,5 +22,6 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     anthropicApiKey: '',
     aiModel: AIModel.CLAUDE_SONNET_4,
     saveConversations: true,
-    conversationFolder: 'village-conversations'
+    conversationFolder: 'village-conversations',
+    debugMode: false
 }

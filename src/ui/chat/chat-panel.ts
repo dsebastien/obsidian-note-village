@@ -1,4 +1,5 @@
 import { setIcon } from 'obsidian'
+import { log } from '../../utils/log'
 import type { Villager } from '../../game/actors/villager.actor'
 import type { ChatMessage } from '#types/chat-message.intf'
 import type { SendMessageCallback } from '#types/send-message-callback.intf'
@@ -43,7 +44,7 @@ export class ChatPanel {
             attr: { title: 'Copy entire conversation' }
         })
         setIcon(this.copyAllButton, 'copy')
-        this.copyAllButton.addEventListener('click', () => this.copyAllMessages())
+        this.copyAllButton.addEventListener('click', () => void this.copyAllMessages())
 
         this.closeButton = headerActions.createEl('button', { cls: 'note-village-chat-close' })
         setIcon(this.closeButton, 'x')
@@ -66,11 +67,11 @@ export class ChatPanel {
         setIcon(this.sendButton, 'send')
 
         // Event listeners
-        this.sendButton.addEventListener('click', () => this.handleSend())
+        this.sendButton.addEventListener('click', () => void this.handleSend())
         this.textInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault()
-                this.handleSend()
+                void this.handleSend()
             }
         })
     }
@@ -229,7 +230,7 @@ export class ChatPanel {
             setIcon(copyBtn, 'copy')
             copyBtn.addEventListener('click', (e) => {
                 e.stopPropagation()
-                this.copyMessageToClipboard(message.content, copyBtn)
+                void this.copyMessageToClipboard(message.content, copyBtn)
             })
 
             const timeEl = messageEl.createDiv({ cls: 'note-village-chat-message-time' })
@@ -254,10 +255,8 @@ export class ChatPanel {
         try {
             await navigator.clipboard.writeText(content)
             this.showCopiedFeedback(button)
-        } catch {
-            // Fallback for environments where clipboard API is not available
-            this.fallbackCopyToClipboard(content)
-            this.showCopiedFeedback(button)
+        } catch (error) {
+            log('Failed to copy message to clipboard', 'error', error)
         }
     }
 
@@ -278,24 +277,9 @@ export class ChatPanel {
         try {
             await navigator.clipboard.writeText(formattedConversation)
             this.showCopiedFeedback(this.copyAllButton)
-        } catch {
-            this.fallbackCopyToClipboard(formattedConversation)
-            this.showCopiedFeedback(this.copyAllButton)
+        } catch (error) {
+            log('Failed to copy conversation to clipboard', 'error', error)
         }
-    }
-
-    /**
-     * Fallback copy method for environments without clipboard API
-     */
-    private fallbackCopyToClipboard(text: string): void {
-        const textArea = document.createElement('textarea')
-        textArea.value = text
-        textArea.style.position = 'fixed'
-        textArea.style.left = '-9999px'
-        document.body.appendChild(textArea)
-        textArea.select()
-        document.execCommand('copy')
-        document.body.removeChild(textArea)
     }
 
     /**
@@ -305,7 +289,7 @@ export class ChatPanel {
         button.addClass('copied')
         setIcon(button, 'check')
 
-        setTimeout(() => {
+        window.setTimeout(() => {
             button.removeClass('copied')
             setIcon(button, 'copy')
         }, 1500)

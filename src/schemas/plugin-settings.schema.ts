@@ -18,5 +18,6 @@ export const PluginSettingsSchema = z.object({
     anthropicApiKey: z.string().default(''),
     aiModel: AIModelSchema.default(AIModel.CLAUDE_SONNET_4),
     saveConversations: z.boolean().default(true),
-    conversationFolder: z.string().default('village-conversations')
+    conversationFolder: z.string().default('village-conversations'),
+    debugMode: z.boolean().default(false)
 })

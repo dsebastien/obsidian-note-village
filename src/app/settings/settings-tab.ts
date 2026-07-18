@@ -22,7 +22,21 @@ export class NoteVillageSettingTab extends PluginSettingTab {
         this.renderDisplaySettings(containerEl)
         this.renderAIConfiguration(containerEl)
         this.renderConversationSettings(containerEl)
+        this.renderAdvancedSettings(containerEl)
         this.renderSupportSection(containerEl)
+    }
+
+    private renderAdvancedSettings(containerEl: HTMLElement): void {
+        new Setting(containerEl).setName('Advanced').setHeading()
+
+        new Setting(containerEl)
+            .setName('Debug mode')
+            .setDesc('Log verbose diagnostic messages to the developer console. Leave off unless troubleshooting.')
+            .addToggle((toggle) =>
+                toggle.setValue(this.plugin.settings.debugMode).onChange(async (value) => {
+                    await this.plugin.updateSetting('debugMode', value)
+                })
+            )
     }
 
     private renderVillageConfiguration(containerEl: HTMLElement): void {
@@ -164,14 +178,16 @@ export class NoteVillageSettingTab extends PluginSettingTab {
             cls: 'note-village-excluded-folder-remove',
             attr: { 'aria-label': 'Remove folder' }
         })
-        removeBtn.innerHTML = '×'
-        removeBtn.addEventListener('click', async () => {
-            const newExcludedFolders = this.plugin.settings.excludedFolders.filter(
-                (f) => f !== folderPath
-            )
-            await this.plugin.updateSetting('excludedFolders', newExcludedFolders)
-            this.plugin.regenerateVillage()
-            this.display()
+        removeBtn.setText('×')
+        removeBtn.addEventListener('click', () => {
+            void (async () => {
+                const newExcludedFolders = this.plugin.settings.excludedFolders.filter(
+                    (f) => f !== folderPath
+                )
+                await this.plugin.updateSetting('excludedFolders', newExcludedFolders)
+                this.plugin.regenerateVillage()
+                this.display()
+            })()
         })
     }
 
@@ -249,12 +265,14 @@ export class NoteVillageSettingTab extends PluginSettingTab {
             cls: 'note-village-excluded-tag-remove',
             attr: { 'aria-label': 'Remove tag' }
         })
-        removeBtn.innerHTML = '×'
-        removeBtn.addEventListener('click', async () => {
-            const newExcludedTags = this.plugin.settings.excludedTags.filter((t) => t !== tag)
-            await this.plugin.updateSetting('excludedTags', newExcludedTags)
-            this.plugin.regenerateVillage()
-            this.display()
+        removeBtn.setText('×')
+        removeBtn.addEventListener('click', () => {
+            void (async () => {
+                const newExcludedTags = this.plugin.settings.excludedTags.filter((t) => t !== tag)
+                await this.plugin.updateSetting('excludedTags', newExcludedTags)
+                this.plugin.regenerateVillage()
+                this.display()
+            })()
         })
     }
 

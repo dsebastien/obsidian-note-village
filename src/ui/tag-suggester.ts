@@ -64,8 +64,8 @@ export class TagSuggester extends AbstractInputSuggest<string> {
         if (!frontmatter) return []
 
         const tags: string[] = []
-        const fmTags = frontmatter['tags']
-        const fmTag = frontmatter['tag']
+        const fmTags: unknown = frontmatter['tags']
+        const fmTag: unknown = frontmatter['tag']
 
         // Handle 'tags' field (can be array or string)
         if (fmTags) {

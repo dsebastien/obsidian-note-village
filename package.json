@@ -72,6 +72,7 @@
         "cz-customizable": "^7.5.1",
         "eslint": "^9.36.0",
         "eslint-config-prettier": "^10.1.5",
+        "eslint-plugin-obsidianmd": "0.4.1",
         "obsidian": "latest",
         "prettier": "^3.6.2",
         "tailwindcss": "4.1.17",

@@ -80,7 +80,7 @@ export class VillageGame {
 
         // Start engine
         await this.engine.start()
-        this.engine.goToScene('village')
+        await this.engine.goToScene('village')
         this.isRunning = true
 
         log('Village game initialized and running', 'debug')

@@ -12,7 +12,7 @@ export class SpeechBubble {
 
     constructor(parentEl: HTMLElement) {
         this.container = parentEl.createDiv({ cls: 'note-village-speech-bubble' })
-        this.container.style.display = 'none'
+        this.container.hide()
 
         this.textEl = this.container.createDiv({ cls: 'note-village-speech-bubble-text' })
 
@@ -27,7 +27,7 @@ export class SpeechBubble {
         this.targetActor = actor
         this.engine = engine
         this.textEl.setText(text)
-        this.container.style.display = 'block'
+        this.container.show()
         this.updatePosition()
         this.startTracking()
     }
@@ -44,7 +44,7 @@ export class SpeechBubble {
      */
     hide(): void {
         this.stopTracking()
-        this.container.style.display = 'none'
+        this.container.hide()
         this.targetActor = null
         this.engine = null
     }
@@ -63,9 +63,9 @@ export class SpeechBubble {
         this.stopTracking()
         const track = (): void => {
             this.updatePosition()
-            this.animationFrameId = requestAnimationFrame(track)
+            this.animationFrameId = window.requestAnimationFrame(track)
         }
-        this.animationFrameId = requestAnimationFrame(track)
+        this.animationFrameId = window.requestAnimationFrame(track)
     }
 
     /**
@@ -73,7 +73,7 @@ export class SpeechBubble {
      */
     private stopTracking(): void {
         if (this.animationFrameId !== null) {
-            cancelAnimationFrame(this.animationFrameId)
+            window.cancelAnimationFrame(this.animationFrameId)
             this.animationFrameId = null
         }
     }

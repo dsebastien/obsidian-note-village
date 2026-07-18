@@ -139,7 +139,7 @@ export class SpriteManager {
                 animations.set(
                     `walk-${direction}`,
                     new ex.Animation({
-                        frames: walkSprites.map((sprite) => ({ graphic: sprite!, duration: 150 })),
+                        frames: walkSprites.map((sprite) => ({ graphic: sprite, duration: 150 })),
                         strategy: ex.AnimationStrategy.Loop
                     })
                 )

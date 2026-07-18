@@ -73,6 +73,14 @@ All settings are accessible via **Settings → Note Village**.
 - **Default**: `village-conversations`
 - **Description**: Folder where conversations are saved.
 
+## Advanced Settings
+
+### Debug Mode
+
+- **Type**: Toggle
+- **Default**: false
+- **Description**: Log verbose diagnostic messages to the developer console. Leave off during normal use; enable only when troubleshooting or reporting an issue.
+
 ## Generator Options
 
 These advanced options control village generation:

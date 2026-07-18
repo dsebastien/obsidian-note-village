@@ -45,7 +45,7 @@ export class Minimap {
     start(scene: VillageScene): void {
         this.scene = scene
         this.villageData = scene.getVillageData()
-        this.container.style.display = 'block'
+        this.container.show()
         this.startRenderLoop()
     }
 
@@ -54,7 +54,7 @@ export class Minimap {
      */
     stop(): void {
         this.stopRenderLoop()
-        this.container.style.display = 'none'
+        this.container.hide()
         this.scene = null
         this.villageData = null
     }
@@ -73,9 +73,9 @@ export class Minimap {
     private startRenderLoop(): void {
         const render = (): void => {
             this.render()
-            this.animationFrameId = requestAnimationFrame(render)
+            this.animationFrameId = window.requestAnimationFrame(render)
         }
-        this.animationFrameId = requestAnimationFrame(render)
+        this.animationFrameId = window.requestAnimationFrame(render)
     }
 
     /**
@@ -83,7 +83,7 @@ export class Minimap {
      */
     private stopRenderLoop(): void {
         if (this.animationFrameId !== null) {
-            cancelAnimationFrame(this.animationFrameId)
+            window.cancelAnimationFrame(this.animationFrameId)
             this.animationFrameId = null
         }
     }

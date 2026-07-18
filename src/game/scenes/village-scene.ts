@@ -793,7 +793,7 @@ export class VillageScene extends ex.Scene {
 
             // Yield to the event loop between batches for smooth loading
             if (i + batchSize < totalVillagers) {
-                await new Promise((resolve) => requestAnimationFrame(resolve))
+                await new Promise((resolve) => window.requestAnimationFrame(resolve))
             }
         }
 

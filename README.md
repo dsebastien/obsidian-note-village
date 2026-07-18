@@ -63,6 +63,7 @@ Open **Settings** > **Note Village** to configure:
 | AI model            | Claude model for conversations                      |
 | Save conversations  | Save chat history to vault                          |
 | Conversation folder | Folder for saved conversations                      |
+| Debug mode          | Log verbose diagnostics to the console (off by default) |
 
 ## Usage
 

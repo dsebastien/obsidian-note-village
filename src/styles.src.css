@@ -26,6 +26,11 @@
     @apply w-full h-full block;
 }
 
+/* Focusable game canvas: suppress the default focus outline */
+.note-village-no-outline {
+    @apply outline-none;
+}
+
 /* ========================================
    CHAT PANEL
    ======================================== */

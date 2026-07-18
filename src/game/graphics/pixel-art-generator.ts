@@ -149,7 +149,7 @@ export function generateCharacterFrame(
     frame: number,
     isWalking: boolean
 ): HTMLCanvasElement {
-    const canvas = document.createElement('canvas')
+    const canvas = createEl('canvas')
     canvas.width = 16
     canvas.height = 24
     const ctx = canvas.getContext('2d')
@@ -583,7 +583,7 @@ function setPixel(ctx: CanvasRenderingContext2D, x: number, y: number, color: st
 export function generateCharacterSpriteSheet(palette: ColorPalette): HTMLCanvasElement {
     const spriteWidth = 16
     const spriteHeight = 24
-    const canvas = document.createElement('canvas')
+    const canvas = createEl('canvas')
     canvas.width = spriteWidth * 8 // 4 directions x 2 frames
     canvas.height = spriteHeight
     const ctx = canvas.getContext('2d')
@@ -652,7 +652,7 @@ export function generateStructureSprite(type: string, variant: number = 0): HTML
 }
 
 function generateHouseSprite(variant: number): HTMLCanvasElement {
-    const canvas = document.createElement('canvas')
+    const canvas = createEl('canvas')
     canvas.width = 48
     canvas.height = 48
     const ctx = canvas.getContext('2d')
@@ -749,7 +749,7 @@ function generateHouseSprite(variant: number): HTMLCanvasElement {
 }
 
 function generateTreeSprite(variant: number): HTMLCanvasElement {
-    const canvas = document.createElement('canvas')
+    const canvas = createEl('canvas')
     canvas.width = 32
     canvas.height = 40
     const ctx = canvas.getContext('2d')
@@ -792,7 +792,7 @@ function generateTreeSprite(variant: number): HTMLCanvasElement {
 }
 
 function generateFountainSprite(): HTMLCanvasElement {
-    const canvas = document.createElement('canvas')
+    const canvas = createEl('canvas')
     canvas.width = 48
     canvas.height = 48
     const ctx = canvas.getContext('2d')
@@ -839,7 +839,7 @@ function generateFountainSprite(): HTMLCanvasElement {
 }
 
 function generateBenchSprite(): HTMLCanvasElement {
-    const canvas = document.createElement('canvas')
+    const canvas = createEl('canvas')
     canvas.width = 32
     canvas.height = 20
     const ctx = canvas.getContext('2d')
@@ -876,7 +876,7 @@ function generateBenchSprite(): HTMLCanvasElement {
 }
 
 function generateSignSprite(): HTMLCanvasElement {
-    const canvas = document.createElement('canvas')
+    const canvas = createEl('canvas')
     canvas.width = 24
     canvas.height = 32
     const ctx = canvas.getContext('2d')
@@ -903,7 +903,7 @@ function generateSignSprite(): HTMLCanvasElement {
 }
 
 function generateFenceSprite(): HTMLCanvasElement {
-    const canvas = document.createElement('canvas')
+    const canvas = createEl('canvas')
     canvas.width = 24
     canvas.height = 20
     const ctx = canvas.getContext('2d')
@@ -950,7 +950,7 @@ function generateFenceSprite(): HTMLCanvasElement {
 }
 
 function generateDefaultSprite(): HTMLCanvasElement {
-    const canvas = document.createElement('canvas')
+    const canvas = createEl('canvas')
     canvas.width = 16
     canvas.height = 16
     const ctx = canvas.getContext('2d')
@@ -967,7 +967,7 @@ function generateDefaultSprite(): HTMLCanvasElement {
  * Colorful clusters of flowers in 3 color variants
  */
 function generateFlowerBedSprite(variant: number): HTMLCanvasElement {
-    const canvas = document.createElement('canvas')
+    const canvas = createEl('canvas')
     canvas.width = 24
     canvas.height = 16
     const ctx = canvas.getContext('2d')
@@ -1027,7 +1027,7 @@ function generateFlowerBedSprite(variant: number): HTMLCanvasElement {
  * Small shrubs with 2 shape variants
  */
 function generateBushSprite(variant: number): HTMLCanvasElement {
-    const canvas = document.createElement('canvas')
+    const canvas = createEl('canvas')
     canvas.width = 20
     canvas.height = 18
     const ctx = canvas.getContext('2d')
@@ -1067,7 +1067,7 @@ function generateBushSprite(variant: number): HTMLCanvasElement {
  * Natural boulders in 3 size/shape variants
  */
 function generateRockSprite(variant: number): HTMLCanvasElement {
-    const canvas = document.createElement('canvas')
+    const canvas = createEl('canvas')
     // Different sizes based on variant
     const sizes = [
         { width: 16, height: 12 },
@@ -1119,7 +1119,7 @@ function generateRockSprite(variant: number): HTMLCanvasElement {
  * Swaying grass clumps for zone edges
  */
 function generateTallGrassSprite(variant: number): HTMLCanvasElement {
-    const canvas = document.createElement('canvas')
+    const canvas = createEl('canvas')
     canvas.width = 24
     canvas.height = 16
     const ctx = canvas.getContext('2d')
@@ -1166,7 +1166,7 @@ function generateTallGrassSprite(variant: number): HTMLCanvasElement {
  * Wooden storage barrel
  */
 function generateBarrelSprite(variant: number): HTMLCanvasElement {
-    const canvas = document.createElement('canvas')
+    const canvas = createEl('canvas')
     canvas.width = 16
     canvas.height = 20
     const ctx = canvas.getContext('2d')
@@ -1216,7 +1216,7 @@ function generateBarrelSprite(variant: number): HTMLCanvasElement {
  * Wooden supply crate
  */
 function generateCrateSprite(variant: number): HTMLCanvasElement {
-    const canvas = document.createElement('canvas')
+    const canvas = createEl('canvas')
     canvas.width = 16
     canvas.height = 16
     const ctx = canvas.getContext('2d')
@@ -1312,7 +1312,7 @@ function lightenColor(hex: string, amount: number): string {
  * Generate grass tile pattern
  */
 export function generateGrassTile(): HTMLCanvasElement {
-    const canvas = document.createElement('canvas')
+    const canvas = createEl('canvas')
     canvas.width = 16
     canvas.height = 16
     const ctx = canvas.getContext('2d')
@@ -1346,7 +1346,7 @@ export function generateGrassTile(): HTMLCanvasElement {
  * Generate plaza/path tile
  */
 export function generatePlazaTile(): HTMLCanvasElement {
-    const canvas = document.createElement('canvas')
+    const canvas = createEl('canvas')
     canvas.width = 16
     canvas.height = 16
     const ctx = canvas.getContext('2d')

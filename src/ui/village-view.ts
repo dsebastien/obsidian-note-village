@@ -93,7 +93,7 @@ export class VillageView extends ItemView {
             await this.handleChatMessage(message)
         })
         this.chatPanel.setOnCloseCallback(() => {
-            this.handleChatClose()
+            void this.handleChatClose()
         })
         this.chatPanel.setOnOpenCallback(() => {
             this.handleSidebarStateChange()
@@ -110,7 +110,7 @@ export class VillageView extends ItemView {
         const scene = this.game.getScene()
         if (scene) {
             scene.setVillagerInteractionCallback((villager) => {
-                this.handleVillagerInteraction(villager)
+                void this.handleVillagerInteraction(villager)
             })
 
             // Start minimap
@@ -120,7 +120,7 @@ export class VillageView extends ItemView {
 
             // Load villagers in the background after game is ready
             // This prevents blocking the initial render
-            scene.spawnVillagersInBatches(10)
+            void scene.spawnVillagersInBatches(10)
         }
 
         // Set up resize observer on game area (not container)
@@ -240,7 +240,7 @@ export class VillageView extends ItemView {
      */
     private handleSidebarStateChange(): void {
         // Wait for CSS animation to complete (300ms transition)
-        setTimeout(() => {
+        window.setTimeout(() => {
             this.handleResize()
         }, 350)
     }
@@ -412,7 +412,7 @@ export class VillageView extends ItemView {
         const scene = this.game.getScene()
         if (scene) {
             scene.setVillagerInteractionCallback((villager) => {
-                this.handleVillagerInteraction(villager)
+                void this.handleVillagerInteraction(villager)
             })
 
             // Restart minimap with new scene
@@ -421,7 +421,7 @@ export class VillageView extends ItemView {
             }
 
             // Load villagers in the background
-            scene.spawnVillagersInBatches(10)
+            void scene.spawnVillagersInBatches(10)
         }
     }
 }

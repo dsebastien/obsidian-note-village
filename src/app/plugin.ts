@@ -4,7 +4,7 @@ import type { PluginSettings } from '#types/plugin-settings.intf'
 import { DEFAULT_SETTINGS } from '#types/plugin-settings.intf'
 import { NoteVillageSettingTab } from './settings/settings-tab'
 import { VillageView } from '../ui/village-view'
-import { log } from '../utils/log'
+import { log, setDebugMode } from '../utils/log'
 
 /**
  * View type identifier for the village view
@@ -24,24 +24,25 @@ export class NoteVillagePlugin extends Plugin {
      * Executed as soon as the plugin loads
      */
     override async onload(): Promise<void> {
-        log('Initializing Note Village', 'debug')
         await this.loadSettings()
+        setDebugMode(this.settings.debugMode)
+        log('Initializing Note Village', 'debug')
 
         // Register the village view
         this.registerView(NOTE_VILLAGE_VIEW_TYPE, (leaf) => new VillageView(leaf, this))
 
         // Add command to open the village view
         this.addCommand({
-            id: 'open-note-village',
-            name: 'Open Note Village',
+            id: 'open',
+            name: 'Open village',
             callback: () => {
-                this.activateVillageView()
+                void this.activateVillageView()
             }
         })
 
         // Add ribbon icon
         this.addRibbonIcon('home', 'Open Note Village', () => {
-            this.activateVillageView()
+            void this.activateVillageView()
         })
 
         // Add a settings screen for the plugin
@@ -57,7 +58,7 @@ export class NoteVillagePlugin extends Plugin {
      */
     async loadSettings(): Promise<void> {
         log('Loading settings', 'debug')
-        const loadedData = await this.loadData()
+        const loadedData: unknown = await this.loadData()
 
         if (!loadedData) {
             log('Using default settings', 'debug')
@@ -94,6 +95,9 @@ export class NoteVillagePlugin extends Plugin {
         value: PluginSettings[K]
     ): Promise<void> {
         this.settings = { ...this.settings, [key]: value }
+        if (key === 'debugMode') {
+            setDebugMode(this.settings.debugMode)
+        }
         await this.saveSettings()
     }
 
@@ -114,7 +118,7 @@ export class NoteVillagePlugin extends Plugin {
             })
         }
 
-        workspace.revealLeaf(leaf)
+        await workspace.revealLeaf(leaf)
     }
 
     /**
@@ -126,7 +130,7 @@ export class NoteVillagePlugin extends Plugin {
         for (const leaf of leaves) {
             const view = leaf.view
             if (view instanceof VillageView) {
-                view.regenerate()
+                void view.regenerate()
             }
         }
     }

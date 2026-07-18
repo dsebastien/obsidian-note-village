@@ -175,8 +175,8 @@ export class NoteScanner {
         // Get frontmatter tags
         const frontmatter = metadata.frontmatter
         if (frontmatter) {
-            const fmTags = frontmatter['tags']
-            const fmTag = frontmatter['tag']
+            const fmTags: unknown = frontmatter['tags']
+            const fmTag: unknown = frontmatter['tag']
 
             if (fmTags) {
                 if (Array.isArray(fmTags)) {
@@ -221,7 +221,7 @@ export class NoteScanner {
         const frontmatter = metadata.frontmatter
         if (!frontmatter) return undefined
 
-        const updatedValue = frontmatter['updated']
+        const updatedValue: unknown = frontmatter['updated']
         if (updatedValue === undefined || updatedValue === null) return undefined
 
         // If it's already a number, use it directly

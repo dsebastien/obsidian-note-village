@@ -88,7 +88,7 @@ export class ConversationManager {
             )
 
             const messages = this.currentConversation.messages.map((m) => ({
-                role: m.role as 'user' | 'assistant',
+                role: m.role,
                 content: m.content
             }))
 

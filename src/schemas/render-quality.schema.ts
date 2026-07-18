@@ -4,4 +4,4 @@ import { RenderQuality } from '#types/render-quality.intf'
 /**
  * Zod schema for render quality
  */
-export const RenderQualitySchema = z.nativeEnum(RenderQuality)
+export const RenderQualitySchema = z.enum(RenderQuality)

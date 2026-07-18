@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach, afterEach, spyOn, type Mock } from 'bun:test'
-import { log, LOG_PREFIX, LOG_SEPARATOR } from './log'
+import { log, setDebugMode, LOG_PREFIX, LOG_SEPARATOR } from './log'
 
 describe('log', () => {
     let consoleDebugSpy: Mock<typeof console.debug>
@@ -8,6 +8,8 @@ describe('log', () => {
     let consoleErrorSpy: Mock<typeof console.error>
 
     beforeEach(() => {
+        // Logging is gated behind debug mode; enable it for these assertions.
+        setDebugMode(true)
         consoleDebugSpy = spyOn(console, 'debug').mockImplementation(() => {})
         consoleInfoSpy = spyOn(console, 'info').mockImplementation(() => {})
         consoleWarnSpy = spyOn(console, 'warn').mockImplementation(() => {})
@@ -15,10 +17,23 @@ describe('log', () => {
     })
 
     afterEach(() => {
+        setDebugMode(false)
         consoleDebugSpy.mockRestore()
         consoleInfoSpy.mockRestore()
         consoleWarnSpy.mockRestore()
         consoleErrorSpy.mockRestore()
+    })
+
+    describe('debug mode gating', () => {
+        test('should not log anything when debug mode is disabled', () => {
+            setDebugMode(false)
+            log('quiet message', 'info')
+            log('another', 'error')
+            expect(consoleInfoSpy).not.toHaveBeenCalled()
+            expect(consoleErrorSpy).not.toHaveBeenCalled()
+            expect(consoleDebugSpy).not.toHaveBeenCalled()
+            expect(consoleWarnSpy).not.toHaveBeenCalled()
+        })
     })
 
     describe('LOG_PREFIX', () => {

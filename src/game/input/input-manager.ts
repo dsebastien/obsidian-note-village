@@ -27,7 +27,7 @@ export class InputManager {
 
         // Make canvas focusable
         this.canvas.tabIndex = 0
-        this.canvas.style.outline = 'none' // Hide focus outline
+        this.canvas.addClass('note-village-no-outline') // Hide focus outline
 
         // Bind handlers
         this.boundKeyDownHandler = this.handleKeyDown.bind(this)
