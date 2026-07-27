@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0](https://github.com/dsebastien/obsidian-note-village/compare/1.1.0...1.2.0) (2026-07-27)
+
+### Features
+
+* **plugin:** show a what's new dialog once after plugin updates ([32250fe](https://github.com/dsebastien/obsidian-note-village/commit/32250fe71c3d82222ad45152790be8746f47ba29))
+
 ## [1.1.0](https://github.com/dsebastien/obsidian-note-village/compare/1.0.2...1.1.0) (2026-07-18)
 
 ### Bug Fixes
@@ -70,6 +76,7 @@ All notable changes to this project will be documented in this file.
 * **all:** moved forest to become the borders of the world ([7d73a5d](https://github.com/dsebastien/obsidian-note-village/commit/7d73a5d7ddbe13d33586b0b4b88ee7e5e957b447))
 * **all:** switch to classic tiles ([f34ede3](https://github.com/dsebastien/obsidian-note-village/commit/f34ede3eb747d2eb510e500d4ae4c464d26dda96))
 * **all:** villagers stop moving while discussing ([8ec4b49](https://github.com/dsebastien/obsidian-note-village/commit/8ec4b49f51e93ef243734846f83a4472a61e880f))
+
 
 
 
