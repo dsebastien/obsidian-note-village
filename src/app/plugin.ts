@@ -1,3 +1,4 @@
+import { registerWhatsNewDialog } from './whats-new'
 import { Plugin } from 'obsidian'
 import { PluginSettingsSchema } from '#schemas/plugin-settings.schema'
 import type { PluginSettings } from '#types/plugin-settings.intf'
@@ -24,6 +25,8 @@ export class NoteVillagePlugin extends Plugin {
      * Executed as soon as the plugin loads
      */
     override async onload(): Promise<void> {
+        // Must run before anything can call saveData (fresh-install detection)
+        registerWhatsNewDialog(this)
         await this.loadSettings()
         setDebugMode(this.settings.debugMode)
         log('Initializing Note Village', 'debug')

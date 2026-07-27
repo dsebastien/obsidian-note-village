@@ -51,18 +51,18 @@ If the plugin isn't listed in the community catalog yet (or you want a specific 
 
 Open **Settings** > **Note Village** to configure:
 
-| Setting             | Description                                         |
-| ------------------- | --------------------------------------------------- |
-| Village seed        | Seed for procedural generation (empty = vault name) |
-| Top tag count       | Number of tags to use as zones (3-20)               |
-| Max villagers       | Maximum number of villagers to display (10-500)     |
-| Excluded folders    | Folders to exclude from analysis                    |
-| Excluded tags       | Tags to exclude from zone generation                |
-| Render quality      | Graphics quality (Low, Medium, High)                |
-| Anthropic API key   | Required for AI conversations                       |
-| AI model            | Claude model for conversations                      |
-| Save conversations  | Save chat history to vault                          |
-| Conversation folder | Folder for saved conversations                      |
+| Setting             | Description                                             |
+| ------------------- | ------------------------------------------------------- |
+| Village seed        | Seed for procedural generation (empty = vault name)     |
+| Top tag count       | Number of tags to use as zones (3-20)                   |
+| Max villagers       | Maximum number of villagers to display (10-500)         |
+| Excluded folders    | Folders to exclude from analysis                        |
+| Excluded tags       | Tags to exclude from zone generation                    |
+| Render quality      | Graphics quality (Low, Medium, High)                    |
+| Anthropic API key   | Required for AI conversations                           |
+| AI model            | Claude model for conversations                          |
+| Save conversations  | Save chat history to vault                              |
+| Conversation folder | Folder for saved conversations                          |
 | Debug mode          | Log verbose diagnostics to the console (off by default) |
 
 ## Usage
@@ -124,6 +124,7 @@ bun install
 - **Zod** for runtime validation
 - **Tailwind CSS v4** for styling
 - **Bun** for package management and bundling
+- **What's new after updates.** After a plugin update, a one-time dialog shows the release notes you just received (including skipped versions) with ways to support development. Never shown on fresh installs or regular restarts.
 
 ## Support
 

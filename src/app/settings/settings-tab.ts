@@ -31,7 +31,9 @@ export class NoteVillageSettingTab extends PluginSettingTab {
 
         new Setting(containerEl)
             .setName('Debug mode')
-            .setDesc('Log verbose diagnostic messages to the developer console. Leave off unless troubleshooting.')
+            .setDesc(
+                'Log verbose diagnostic messages to the developer console. Leave off unless troubleshooting.'
+            )
             .addToggle((toggle) =>
                 toggle.setValue(this.plugin.settings.debugMode).onChange(async (value) => {
                     await this.plugin.updateSetting('debugMode', value)
