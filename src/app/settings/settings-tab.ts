@@ -5,6 +5,7 @@ import { RenderQuality } from '#types/render-quality.intf'
 import { FolderSuggester } from '../../ui/folder-suggester'
 import { TagSuggester } from '../../ui/tag-suggester'
 import { BUY_ME_A_COFFEE_BADGE_DATA_URL } from '../assets/buy-me-a-coffee'
+import { renderSupportSection } from '../ui/support-links'
 
 export class NoteVillageSettingTab extends PluginSettingTab {
     plugin: NoteVillagePlugin
@@ -358,26 +359,9 @@ export class NoteVillageSettingTab extends PluginSettingTab {
     }
 
     private renderSupportSection(containerEl: HTMLElement): void {
-        new Setting(containerEl).setName('Support').setHeading()
-
-        new Setting(containerEl)
-            .setName('Follow me on X')
-            .setDesc('Sébastien Dubois (@dSebastien)')
-            .addButton((button) => {
-                button.setCta()
-                button.setButtonText('Follow me on X').onClick(() => {
-                    window.open('https://x.com/dSebastien')
-                })
-            })
-
-        const supportDesc = new DocumentFragment()
-        supportDesc.createDiv({
-            text: 'Buy me a coffee to support the development of this plugin'
+        renderSupportSection(containerEl, (el) => {
+            this.renderBuyMeACoffeeBadge(el)
         })
-
-        new Setting(containerEl).setDesc(supportDesc)
-
-        this.renderBuyMeACoffeeBadge(containerEl)
     }
 
     private renderBuyMeACoffeeBadge(contentEl: HTMLElement, width = 175): void {
