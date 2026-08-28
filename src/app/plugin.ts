@@ -1,5 +1,7 @@
 import { registerWhatsNewView } from './whats-new'
 import { Plugin } from 'obsidian'
+import { produce } from 'immer'
+import type { Draft } from 'immer'
 import { PluginSettingsSchema } from '#schemas/plugin-settings.schema'
 import type { PluginSettings } from '#types/plugin-settings.intf'
 import { DEFAULT_SETTINGS } from '#types/plugin-settings.intf'
@@ -90,18 +92,37 @@ export class NoteVillagePlugin extends Plugin {
         log('Settings saved', 'debug', this.settings)
     }
 
+    /** Serializes settings writes; see updateSettings. */
+    private settingsWriteChain: Promise<void> = Promise.resolve()
+
     /**
-     * Update a specific setting
+     * Apply a mutation to the settings (via immer) and persist the result.
+     * The single write path — the declarative settings tab routes every
+     * control edit through here so persistence happens in exactly one place.
+     *
+     * Persist-then-commit: memory is swapped only after saveData() succeeds,
+     * so a rejected write rolls the control back to the on-disk truth.
+     * Serialized: writes queue and each mutation derives from the previous
+     * COMMITTED state — without this, overlapping calls produce from the same
+     * base across the save await and the second commit silently drops the
+     * first edit.
+     *
+     * Side effects run strictly AFTER a successful commit: debug logging
+     * tracks the committed debugMode value.
      */
-    async updateSetting<K extends keyof PluginSettings>(
-        key: K,
-        value: PluginSettings[K]
-    ): Promise<void> {
-        this.settings = { ...this.settings, [key]: value }
-        if (key === 'debugMode') {
-            setDebugMode(this.settings.debugMode)
+    updateSettings(mutator: (draft: Draft<PluginSettings>) => void): Promise<void> {
+        const run = async (): Promise<void> => {
+            const next = produce(this.settings, mutator)
+            await this.saveData(next)
+            const previousDebugMode = this.settings.debugMode
+            this.settings = next
+            if (next.debugMode !== previousDebugMode) {
+                setDebugMode(next.debugMode)
+            }
         }
-        await this.saveSettings()
+        const p = this.settingsWriteChain.then(run, run)
+        this.settingsWriteChain = p.catch(() => {})
+        return p
     }
 
     /**

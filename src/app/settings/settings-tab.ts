@@ -1,5 +1,7 @@
-import { App, PluginSettingTab, Setting } from 'obsidian'
+import { Notice, PluginSettingTab } from 'obsidian'
+import type { App, SearchComponent, SettingDefinitionItem } from 'obsidian'
 import type { NoteVillagePlugin } from '../plugin'
+import type { PluginSettings } from '#types/plugin-settings.intf'
 import { AIModel } from '#types/ai-model.intf'
 import { RenderQuality } from '#types/render-quality.intf'
 import { FolderSuggester } from '../../ui/folder-suggester'
@@ -7,6 +9,52 @@ import { TagSuggester } from '../../ui/tag-suggester'
 import { BUY_ME_A_COFFEE_BADGE_DATA_URL } from '../assets/buy-me-a-coffee'
 import { renderSupportSection } from '../ui/support-links'
 
+/**
+ * The settings keys owned by plain declarative controls, i.e. everything the
+ * `getControlValue`/`setControlValue` pair addresses. The API key and the two
+ * exclusion lists go through their own render/list definitions instead.
+ */
+type ControlKey =
+    | 'villageSeed'
+    | 'topTagCount'
+    | 'maxVillagers'
+    | 'renderQuality'
+    | 'aiModel'
+    | 'saveConversations'
+    | 'conversationFolder'
+    | 'debugMode'
+
+/** Control writes after which the village layout must be rebuilt. */
+const VILLAGE_SHAPE_KEYS: ReadonlySet<string> = new Set([
+    'villageSeed',
+    'topTagCount',
+    'maxVillagers'
+])
+
+/**
+ * Settings tab, declared rather than rendered (Obsidian 1.13+).
+ *
+ * `getSettingDefinitions()` REPLACES `display()`: when it returns a non-empty
+ * array, `display()` is never called. There is no partial adoption — the whole
+ * settings UI is declarative, or none of it. In exchange, Obsidian owns
+ * navigation, focus and ARIA, and every declared `name`/`desc` is indexed by
+ * the settings search.
+ *
+ * Rules that each cost a shipped bug the first time they were broken:
+ *
+ * - A `render:` hook renders the ROW. Write into `setting.settingEl` only;
+ *   anything written outside it (e.g. `group.listEl`) is the framework's to
+ *   discard, and the control simply does not appear.
+ * - `defaultValue` is the fallback for a RESOLVER returning undefined/null,
+ *   NOT for a cleared input.
+ * - A row `action:` fires on the whole row, not on a button. Button rows use
+ *   `render:` with `addButton` instead.
+ * - `setControlValue` MUST reject on failure. Resolving tells the framework
+ *   the write landed, so the pane keeps showing a value that was never stored.
+ * - `onDelete(index)` indexes the list as it was DRAWN: resolve the entry to a
+ *   value immediately, then filter against the committed array INSIDE the
+ *   mutator.
+ */
 export class NoteVillageSettingTab extends PluginSettingTab {
     plugin: NoteVillagePlugin
 
@@ -15,353 +63,458 @@ export class NoteVillageSettingTab extends PluginSettingTab {
         this.plugin = plugin
     }
 
-    override display(): void {
-        const { containerEl } = this
-        containerEl.empty()
-
-        this.renderVillageConfiguration(containerEl)
-        this.renderDisplaySettings(containerEl)
-        this.renderAIConfiguration(containerEl)
-        this.renderConversationSettings(containerEl)
-        this.renderAdvancedSettings(containerEl)
-        this.renderSupportSection(containerEl)
+    override getSettingDefinitions(): SettingDefinitionItem[] {
+        return [
+            {
+                type: 'group',
+                heading: 'Village configuration',
+                items: [
+                    {
+                        name: 'Village seed',
+                        desc: 'Seed for village generation. Leave empty to use vault name as seed.',
+                        control: {
+                            type: 'text',
+                            key: 'villageSeed',
+                            placeholder: 'Leave empty for vault-based seed'
+                        }
+                    },
+                    {
+                        name: 'Number of zones',
+                        desc: 'Number of top tags to use as village zones (3-20)',
+                        control: {
+                            type: 'slider',
+                            key: 'topTagCount',
+                            min: 3,
+                            max: 20,
+                            step: 1
+                        }
+                    },
+                    {
+                        name: 'Maximum villagers',
+                        desc: 'Maximum number of villagers to display in the village (10-500)',
+                        control: {
+                            type: 'slider',
+                            key: 'maxVillagers',
+                            min: 10,
+                            max: 500,
+                            step: 10
+                        }
+                    },
+                    {
+                        name: 'Regenerate village',
+                        desc: 'Regenerate the village layout with current settings',
+                        // A button, not a row `action:` — `action:` makes the
+                        // WHOLE row clickable and draws no button at all.
+                        render: (setting): void => {
+                            setting.addButton((button) =>
+                                button.setButtonText('Regenerate').onClick(() => {
+                                    this.plugin.regenerateVillage()
+                                })
+                            )
+                        }
+                    }
+                ]
+            },
+            // The exclusion lists sit at the top level: a group's `items`
+            // cannot host a `type: 'list'` definition (the type forbids it).
+            ...this.exclusionListDefinitions(
+                'excludedFolders',
+                'Excluded folders',
+                'Folders to exclude from village generation (notes in these folders will not become villagers)',
+                'No folders excluded.'
+            ),
+            ...this.exclusionListDefinitions(
+                'excludedTags',
+                'Excluded tags',
+                'Tags to exclude from zone selection (notes with only these tags will not become villagers)',
+                'No tags excluded.'
+            ),
+            {
+                type: 'group',
+                heading: 'Display',
+                items: [
+                    {
+                        name: 'Render quality',
+                        desc: 'Graphics quality setting',
+                        control: {
+                            type: 'dropdown',
+                            key: 'renderQuality',
+                            options: {
+                                [RenderQuality.LOW]: 'Low',
+                                [RenderQuality.MEDIUM]: 'Medium',
+                                [RenderQuality.HIGH]: 'High'
+                            }
+                        }
+                    }
+                ]
+            },
+            {
+                type: 'group',
+                heading: 'AI configuration',
+                items: [
+                    {
+                        name: 'Anthropic API key',
+                        desc: 'Your Anthropic API key for AI-powered conversations',
+                        // A render row rather than a text control: the input is
+                        // masked (type=password), which the declarative text
+                        // control cannot express. Keystroke writes go through
+                        // the serialized write path and do NOT re-sync the
+                        // input on success (a re-sync would clobber text typed
+                        // ahead of the queued save); a failed write re-syncs to
+                        // the committed truth.
+                        render: (setting): void => {
+                            setting.addText((text) => {
+                                text.inputEl.type = 'password'
+                                text.setPlaceholder('sk-ant-...')
+                                    .setValue(this.plugin.settings.anthropicApiKey)
+                                    .onChange((value) => {
+                                        this.plugin
+                                            .updateSettings((draft) => {
+                                                draft.anthropicApiKey = value
+                                            })
+                                            .catch(() => {
+                                                new Notice('Failed to save settings.')
+                                                text.setValue(this.plugin.settings.anthropicApiKey)
+                                            })
+                                    })
+                            })
+                        }
+                    },
+                    {
+                        name: 'AI model',
+                        desc: 'Claude model to use for conversations',
+                        control: {
+                            type: 'dropdown',
+                            key: 'aiModel',
+                            options: {
+                                [AIModel.CLAUDE_3_HAIKU]: 'Claude 3 Haiku (fast)',
+                                [AIModel.CLAUDE_3_5_SONNET]: 'Claude 3.5 Sonnet',
+                                [AIModel.CLAUDE_SONNET_4]: 'Claude Sonnet 4 (recommended)'
+                            }
+                        }
+                    }
+                ]
+            },
+            {
+                type: 'group',
+                heading: 'Conversations',
+                items: [
+                    {
+                        name: 'Save conversations',
+                        desc: 'Save AI conversations to your vault',
+                        control: { type: 'toggle', key: 'saveConversations' }
+                    },
+                    {
+                        name: 'Conversation folder',
+                        desc: 'Folder to save conversations in',
+                        control: {
+                            type: 'text',
+                            key: 'conversationFolder',
+                            placeholder: 'village-conversations'
+                        }
+                    }
+                ]
+            },
+            {
+                type: 'group',
+                heading: 'Advanced',
+                items: [
+                    {
+                        name: 'Debug mode',
+                        desc: 'Log verbose diagnostic messages to the developer console. Leave off unless troubleshooting.',
+                        control: { type: 'toggle', key: 'debugMode' }
+                    }
+                ]
+            },
+            {
+                type: 'group',
+                // No heading: renderSupportSection draws its own.
+                items: [
+                    {
+                        name: 'Support',
+                        // Not a setting — keep it out of the settings search.
+                        searchable: false,
+                        render: (setting): void => {
+                            // Render INSIDE the row (settingEl), never into
+                            // group.listEl — see the class docs above.
+                            setting.infoEl.remove() // the section draws its own headings
+                            // `.setting-item` is a flex ROW. The support block
+                            // is a stack of full-width rows, so without this it
+                            // would lay its heading, buttons and badge out side
+                            // by side.
+                            setting.settingEl.addClass('settings-stack')
+                            renderSupportSection(setting.settingEl, (el) => {
+                                this.renderBuyMeACoffeeBadge(el)
+                            })
+                        }
+                    }
+                ]
+            }
+        ]
     }
 
-    private renderAdvancedSettings(containerEl: HTMLElement): void {
-        new Setting(containerEl).setName('Advanced').setHeading()
-
-        new Setting(containerEl)
-            .setName('Debug mode')
-            .setDesc(
-                'Log verbose diagnostic messages to the developer console. Leave off unless troubleshooting.'
-            )
-            .addToggle((toggle) =>
-                toggle.setValue(this.plugin.settings.debugMode).onChange(async (value) => {
-                    await this.plugin.updateSetting('debugMode', value)
-                })
-            )
-    }
-
-    private renderVillageConfiguration(containerEl: HTMLElement): void {
-        new Setting(containerEl).setName('Village configuration').setHeading()
-
-        new Setting(containerEl)
-            .setName('Village seed')
-            .setDesc('Seed for village generation. Leave empty to use vault name as seed.')
-            .addText((text) =>
-                text
-                    .setPlaceholder('Leave empty for vault-based seed')
-                    .setValue(this.plugin.settings.villageSeed)
-                    .onChange(async (value) => {
-                        await this.plugin.updateSetting('villageSeed', value)
-                        this.plugin.regenerateVillage()
-                    })
-            )
-
-        new Setting(containerEl)
-            .setName('Number of zones')
-            .setDesc('Number of top tags to use as village zones (3-20)')
-            .addSlider((slider) =>
-                slider
-                    .setLimits(3, 20, 1)
-                    .setValue(this.plugin.settings.topTagCount)
-                    .setDynamicTooltip()
-                    .onChange(async (value) => {
-                        await this.plugin.updateSetting('topTagCount', value)
-                        this.plugin.regenerateVillage()
-                    })
-            )
-
-        new Setting(containerEl)
-            .setName('Maximum villagers')
-            .setDesc('Maximum number of villagers to display in the village (10-500)')
-            .addSlider((slider) =>
-                slider
-                    .setLimits(10, 500, 10)
-                    .setValue(this.plugin.settings.maxVillagers)
-                    .setDynamicTooltip()
-                    .onChange(async (value) => {
-                        await this.plugin.updateSetting('maxVillagers', value)
-                        this.plugin.regenerateVillage()
-                    })
-            )
-
-        // Excluded folders section
-        this.renderExcludedFolders(containerEl)
-
-        // Excluded tags section
-        this.renderExcludedTags(containerEl)
-
-        new Setting(containerEl)
-            .setName('Regenerate village')
-            .setDesc('Regenerate the village layout with current settings')
-            .addButton((button) =>
-                button.setButtonText('Regenerate').onClick(() => {
-                    this.plugin.regenerateVillage()
-                })
-            )
-    }
-
-    private renderExcludedFolders(containerEl: HTMLElement): void {
-        const excludedFolders = this.plugin.settings.excludedFolders
-
-        new Setting(containerEl)
-            .setName('Excluded folders')
-            .setDesc(
-                'Folders to exclude from village generation (notes in these folders will not become villagers)'
-            )
-
-        // Container for the excluded folders list
-        const foldersContainer = containerEl.createDiv({ cls: 'note-village-excluded-folders' })
-
-        // Render each excluded folder with a remove button
-        for (const folder of excludedFolders) {
-            this.renderExcludedFolder(foldersContainer, folder)
+    /**
+     * Append an entry to one of the exclusion lists.
+     *
+     * Extracted from the add button so the write can be tested without a DOM.
+     * Normalizes (tags lose their leading `#` and are lowercased, folders are
+     * trimmed) and deduplicates, preserving the previous tab's behavior.
+     * Returns whether anything was written, so the caller knows whether to
+     * clear its input and re-render.
+     *
+     * The duplicate check runs against the COMMITTED list inside the mutator:
+     * the write chain runs each mutation against the previously committed
+     * state, and deciding out here would capture a pre-await snapshot — two
+     * quick additions would each build on the same base, the second silently
+     * dropping the first.
+     */
+    async addExclusion(key: 'excludedFolders' | 'excludedTags', raw: string): Promise<boolean> {
+        const value =
+            key === 'excludedTags' ? raw.trim().replace(/^#/, '').toLowerCase() : raw.trim()
+        if (value === '') {
+            return false
         }
-
-        // Add new folder input
-        const addFolderSetting = new Setting(containerEl)
-            .setClass('note-village-add-folder')
-            .addText((text) => {
-                const inputEl = text.inputEl
-                inputEl.placeholder = 'Type folder path...'
-
-                // Add folder suggester
-                new FolderSuggester(this.app, inputEl)
-
-                return text
-            })
-            .addButton((button) =>
-                button
-                    .setButtonText('Add')
-                    .setCta()
-                    .onClick(async () => {
-                        const inputEl = addFolderSetting.controlEl.querySelector('input')
-                        if (!inputEl) return
-
-                        const folderPath = inputEl.value.trim()
-                        if (!folderPath) return
-
-                        // Check if folder exists
-                        const folder = this.app.vault.getAbstractFileByPath(folderPath)
-                        if (!folder) {
-                            // Folder doesn't exist, but still allow adding it
-                            // (user might want to exclude a folder they'll create later)
-                        }
-
-                        // Check if already excluded
-                        if (excludedFolders.includes(folderPath)) {
-                            inputEl.value = ''
-                            return
-                        }
-
-                        // Add to excluded folders
-                        const newExcludedFolders = [...excludedFolders, folderPath]
-                        await this.plugin.updateSetting('excludedFolders', newExcludedFolders)
-                        this.plugin.regenerateVillage()
-
-                        // Clear input and refresh display
-                        inputEl.value = ''
-                        this.display()
-                    })
-            )
-    }
-
-    private renderExcludedFolder(container: HTMLElement, folderPath: string): void {
-        const folderEl = container.createDiv({ cls: 'note-village-excluded-folder' })
-
-        // Folder path
-        folderEl.createSpan({
-            cls: 'note-village-excluded-folder-path',
-            text: folderPath
+        let added = false
+        await this.plugin.updateSettings((draft) => {
+            if (draft[key].includes(value)) {
+                return
+            }
+            draft[key] = [...draft[key], value]
+            added = true
         })
-
-        // Remove button
-        const removeBtn = folderEl.createEl('button', {
-            cls: 'note-village-excluded-folder-remove',
-            attr: { 'aria-label': 'Remove folder' }
-        })
-        removeBtn.setText('×')
-        removeBtn.addEventListener('click', () => {
-            void (async () => {
-                const newExcludedFolders = this.plugin.settings.excludedFolders.filter(
-                    (f) => f !== folderPath
-                )
-                await this.plugin.updateSetting('excludedFolders', newExcludedFolders)
-                this.plugin.regenerateVillage()
-                this.display()
-            })()
-        })
-    }
-
-    private renderExcludedTags(containerEl: HTMLElement): void {
-        const excludedTags = this.plugin.settings.excludedTags
-
-        new Setting(containerEl)
-            .setName('Excluded tags')
-            .setDesc(
-                'Tags to exclude from zone selection (notes with only these tags will not become villagers)'
-            )
-
-        // Container for the excluded tags list
-        const tagsContainer = containerEl.createDiv({ cls: 'note-village-excluded-tags' })
-
-        // Render each excluded tag with a remove button
-        for (const tag of excludedTags) {
-            this.renderExcludedTag(tagsContainer, tag)
+        if (added) {
+            this.plugin.regenerateVillage()
         }
+        return added
+    }
 
-        // Add new tag input
-        const addTagSetting = new Setting(containerEl)
-            .setClass('note-village-add-tag')
-            .addText((text) => {
-                const inputEl = text.inputEl
-                inputEl.placeholder = 'Type tag name...'
-
-                // Add tag suggester
-                new TagSuggester(this.app, inputEl)
-
-                return text
-            })
-            .addButton((button) =>
-                button
-                    .setButtonText('Add')
-                    .setCta()
-                    .onClick(async () => {
-                        const inputEl = addTagSetting.controlEl.querySelector('input')
-                        if (!inputEl) return
-
-                        // Normalize tag (remove # prefix if present, lowercase)
-                        const rawTag = inputEl.value.trim()
-                        if (!rawTag) return
-                        const tag = rawTag.replace(/^#/, '').toLowerCase()
-
-                        // Check if already excluded
-                        if (excludedTags.includes(tag)) {
-                            inputEl.value = ''
-                            return
+    /**
+     * One exclusion list: a header row carrying the description and the
+     * add-an-entry control, then the entries as a native list.
+     *
+     * The add control stays an inline search box with autocomplete rather
+     * than the framework's `addItem` affordance, because `addItem` hands back
+     * a bare element and the whole point here is the suggester completion the
+     * old tab had.
+     */
+    private exclusionListDefinitions(
+        key: 'excludedFolders' | 'excludedTags',
+        name: string,
+        desc: string,
+        emptyState: string
+    ): SettingDefinitionItem[] {
+        return [
+            {
+                name,
+                desc,
+                render: (setting): void => {
+                    let searchInput: SearchComponent | undefined
+                    setting.addSearch((cb) => {
+                        searchInput = cb
+                        if (key === 'excludedFolders') {
+                            new FolderSuggester(this.app, cb.inputEl)
+                            cb.setPlaceholder('Type folder path...')
+                        } else {
+                            new TagSuggester(this.app, cb.inputEl)
+                            cb.setPlaceholder('Type tag name...')
                         }
-
-                        // Add to excluded tags
-                        const newExcludedTags = [...excludedTags, tag]
-                        await this.plugin.updateSetting('excludedTags', newExcludedTags)
-                        this.plugin.regenerateVillage()
-
-                        // Clear input and refresh display
-                        inputEl.value = ''
-                        this.display()
                     })
-            )
-    }
-
-    private renderExcludedTag(container: HTMLElement, tag: string): void {
-        const tagEl = container.createDiv({ cls: 'note-village-excluded-tag' })
-
-        // Tag name
-        tagEl.createSpan({
-            cls: 'note-village-excluded-tag-name',
-            text: tag
-        })
-
-        // Remove button
-        const removeBtn = tagEl.createEl('button', {
-            cls: 'note-village-excluded-tag-remove',
-            attr: { 'aria-label': 'Remove tag' }
-        })
-        removeBtn.setText('×')
-        removeBtn.addEventListener('click', () => {
-            void (async () => {
-                const newExcludedTags = this.plugin.settings.excludedTags.filter((t) => t !== tag)
-                await this.plugin.updateSetting('excludedTags', newExcludedTags)
-                this.plugin.regenerateVillage()
-                this.display()
-            })()
-        })
-    }
-
-    private renderDisplaySettings(containerEl: HTMLElement): void {
-        new Setting(containerEl).setName('Display').setHeading()
-
-        new Setting(containerEl)
-            .setName('Render quality')
-            .setDesc('Graphics quality setting')
-            .addDropdown((dropdown) =>
-                dropdown
-                    .addOption(RenderQuality.LOW, 'Low')
-                    .addOption(RenderQuality.MEDIUM, 'Medium')
-                    .addOption(RenderQuality.HIGH, 'High')
-                    .setValue(this.plugin.settings.renderQuality)
-                    .onChange(async (value) => {
-                        await this.plugin.updateSetting('renderQuality', value as RenderQuality)
+                    setting.addButton((cb) => {
+                        cb.setIcon('plus')
+                        cb.setTooltip(key === 'excludedFolders' ? 'Add folder' : 'Add tag')
+                        cb.onClick(() => {
+                            const raw = searchInput?.getValue() ?? ''
+                            void (async (): Promise<void> => {
+                                // Re-render only when something was written: a
+                                // refused blank/duplicate is a no-op, and a
+                                // rebuild would still discard unsaved edits
+                                // elsewhere in the pane.
+                                if (await this.addExclusion(key, raw)) {
+                                    searchInput?.setValue('')
+                                    this.update()
+                                }
+                            })().catch(() => {
+                                new Notice('Failed to save settings.')
+                            })
+                        })
                     })
-            )
-    }
-
-    private renderAIConfiguration(containerEl: HTMLElement): void {
-        new Setting(containerEl).setName('AI configuration').setHeading()
-
-        new Setting(containerEl)
-            .setName('Anthropic API key')
-            .setDesc('Your Anthropic API key for AI-powered conversations')
-            .addText((text) =>
-                text
-                    .setPlaceholder('sk-ant-...')
-                    .setValue(this.plugin.settings.anthropicApiKey)
-                    .onChange(async (value) => {
-                        await this.plugin.updateSetting('anthropicApiKey', value)
-                    })
-            )
-            .then((setting) => {
-                const inputEl = setting.controlEl.querySelector('input')
-                if (inputEl) {
-                    inputEl.type = 'password'
                 }
-            })
-
-        new Setting(containerEl)
-            .setName('AI model')
-            .setDesc('Claude model to use for conversations')
-            .addDropdown((dropdown) =>
-                dropdown
-                    .addOption(AIModel.CLAUDE_3_HAIKU, 'Claude 3 Haiku (fast)')
-                    .addOption(AIModel.CLAUDE_3_5_SONNET, 'Claude 3.5 Sonnet')
-                    .addOption(AIModel.CLAUDE_SONNET_4, 'Claude Sonnet 4 (recommended)')
-                    .setValue(this.plugin.settings.aiModel)
-                    .onChange(async (value) => {
-                        await this.plugin.updateSetting('aiModel', value as AIModel)
+            },
+            {
+                type: 'list',
+                emptyState,
+                // The framework hands back a position into the list as it was
+                // DRAWN. Resolve the entry to a value here, while that position
+                // is still meaningful, then filter INSIDE the mutator against
+                // the committed array. Filtering a snapshot captured out here
+                // would let two quick deletions each write a stale whole array,
+                // resurrecting the entry the other one removed.
+                onDelete: (index: number): void => {
+                    const target = this.plugin.settings[key][index]
+                    if (target === undefined) {
+                        return
+                    }
+                    void (async (): Promise<void> => {
+                        await this.plugin.updateSettings((draft) => {
+                            draft[key] = draft[key].filter((value) => value !== target)
+                        })
+                        this.plugin.regenerateVillage()
+                        this.update()
+                    })().catch(() => {
+                        // The committed list is unchanged on failure, so no
+                        // rebuild is needed — just say the write did not land.
+                        new Notice('Failed to save settings.')
                     })
-            )
+                },
+                items: this.plugin.settings[key].map((entry) => ({
+                    name: entry,
+                    // Entries are data, not settings: keep them out of search.
+                    searchable: false
+                }))
+            }
+        ]
     }
 
-    private renderConversationSettings(containerEl: HTMLElement): void {
-        new Setting(containerEl).setName('Conversations').setHeading()
+    /**
+     * Reads the value behind a control `key`. Returning undefined/null makes
+     * the framework fall back to the control's declared `defaultValue`.
+     */
+    override getControlValue(key: string): unknown {
+        switch (key as ControlKey) {
+            case 'villageSeed':
+                return this.plugin.settings.villageSeed
+            case 'topTagCount':
+                return this.plugin.settings.topTagCount
+            case 'maxVillagers':
+                return this.plugin.settings.maxVillagers
+            case 'renderQuality':
+                return this.plugin.settings.renderQuality
+            case 'aiModel':
+                return this.plugin.settings.aiModel
+            case 'saveConversations':
+                return this.plugin.settings.saveConversations
+            case 'conversationFolder':
+                return this.plugin.settings.conversationFolder
+            case 'debugMode':
+                return this.plugin.settings.debugMode
+            default:
+                return undefined
+        }
+    }
 
-        new Setting(containerEl)
-            .setName('Save conversations')
-            .setDesc('Save AI conversations to your vault')
-            .addToggle((toggle) =>
-                toggle.setValue(this.plugin.settings.saveConversations).onChange(async (value) => {
-                    await this.plugin.updateSetting('saveConversations', value)
+    /**
+     * Persists a control edit. Rejecting (not resolving) on failure is what
+     * lets the framework roll the control back to the stored truth.
+     *
+     * Village-shape writes rebuild the village AFTER the successful commit,
+     * matching the previous tab's write-then-regenerate behavior.
+     */
+    override async setControlValue(key: string, value: unknown): Promise<void> {
+        switch (key as ControlKey) {
+            case 'villageSeed':
+                await this.writeString(key, value, (draft, next) => {
+                    draft.villageSeed = next
                 })
-            )
-
-        new Setting(containerEl)
-            .setName('Conversation folder')
-            .setDesc('Folder to save conversations in')
-            .addText((text) =>
-                text
-                    .setPlaceholder('village-conversations')
-                    .setValue(this.plugin.settings.conversationFolder)
-                    .onChange(async (value) => {
-                        await this.plugin.updateSetting('conversationFolder', value)
-                    })
-            )
+                break
+            case 'topTagCount':
+                await this.writeNumber(key, value, (draft, next) => {
+                    draft.topTagCount = next
+                })
+                break
+            case 'maxVillagers':
+                await this.writeNumber(key, value, (draft, next) => {
+                    draft.maxVillagers = next
+                })
+                break
+            case 'renderQuality': {
+                const next = this.expectOption(key, value, RenderQuality)
+                await this.plugin.updateSettings((draft) => {
+                    draft.renderQuality = next
+                })
+                break
+            }
+            case 'aiModel': {
+                const next = this.expectOption(key, value, AIModel)
+                await this.plugin.updateSettings((draft) => {
+                    draft.aiModel = next
+                })
+                break
+            }
+            case 'saveConversations': {
+                const next = this.expectBoolean(key, value)
+                await this.plugin.updateSettings((draft) => {
+                    draft.saveConversations = next
+                })
+                break
+            }
+            case 'conversationFolder':
+                await this.writeString(key, value, (draft, next) => {
+                    draft.conversationFolder = next
+                })
+                break
+            case 'debugMode': {
+                const next = this.expectBoolean(key, value)
+                await this.plugin.updateSettings((draft) => {
+                    draft.debugMode = next
+                })
+                break
+            }
+            default:
+                new Notice('Failed to save settings.')
+                throw new Error(`Setting "${key}" does not address a known field.`)
+        }
+        if (VILLAGE_SHAPE_KEYS.has(key)) {
+            this.plugin.regenerateVillage()
+        }
     }
 
-    private renderSupportSection(containerEl: HTMLElement): void {
-        renderSupportSection(containerEl, (el) => {
-            this.renderBuyMeACoffeeBadge(el)
+    private async writeString(
+        key: string,
+        value: unknown,
+        write: (draft: PluginSettings, next: string) => void
+    ): Promise<void> {
+        if (typeof value !== 'string') {
+            throw new Error(`Setting "${key}" expects a string.`)
+        }
+        await this.plugin.updateSettings((draft) => {
+            write(draft, value)
         })
+    }
+
+    private async writeNumber(
+        key: string,
+        value: unknown,
+        write: (draft: PluginSettings, next: number) => void
+    ): Promise<void> {
+        if (typeof value !== 'number' || Number.isNaN(value)) {
+            throw new Error(`Setting "${key}" expects a number.`)
+        }
+        await this.plugin.updateSettings((draft) => {
+            write(draft, value)
+        })
+    }
+
+    private expectBoolean(key: string, value: unknown): boolean {
+        if (typeof value !== 'boolean') {
+            throw new Error(`Setting "${key}" expects a boolean.`)
+        }
+        return value
+    }
+
+    /**
+     * Narrows a dropdown write to the enum's own values: membership over
+     * `Object.values`, never a `typeof` check (which would accept any string)
+     * and never a prototype-chain lookup.
+     */
+    private expectOption<T extends Record<string, string>>(
+        key: string,
+        value: unknown,
+        options: T
+    ): T[keyof T] {
+        if (typeof value !== 'string' || !Object.values(options).includes(value)) {
+            throw new Error(`Setting "${key}" expects one of the declared options.`)
+        }
+        return value as T[keyof T]
     }
 
     private renderBuyMeACoffeeBadge(contentEl: HTMLElement, width = 175): void {
