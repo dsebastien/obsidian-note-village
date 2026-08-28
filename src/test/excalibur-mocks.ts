@@ -94,7 +94,7 @@ export const MockSystemType = {
 
 // Setup the mock module - call this before importing any excalibur-dependent modules
 export function setupExcaliburMock(): void {
-    mock.module('excalibur', () => ({
+    void mock.module('excalibur', () => ({
         Component: MockComponent,
         Vector: MockVector,
         World: MockWorld,

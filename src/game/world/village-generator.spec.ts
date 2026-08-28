@@ -7,7 +7,7 @@ import type { ScannedNote } from '#types/scanned-note.intf'
 const mockTopTags: TagCount[] = []
 const mockNotesByTag = new Map<string, ScannedNote[]>()
 
-mock.module('../../vault/tag-analyzer', () => ({
+void mock.module('../../vault/tag-analyzer', () => ({
     TagAnalyzer: class MockTagAnalyzer {
         setExcludedFolders(_folders: string[]): void {
             // Mock implementation
@@ -21,7 +21,7 @@ mock.module('../../vault/tag-analyzer', () => ({
     }
 }))
 
-mock.module('../../vault/note-scanner', () => ({
+void mock.module('../../vault/note-scanner', () => ({
     NoteScanner: class MockNoteScanner {
         setExcludedFolders(_folders: string[]): void {
             // Mock implementation

@@ -19,7 +19,7 @@ export class NoteVillagePlugin extends Plugin {
     /**
      * Plugin settings
      */
-    settings: PluginSettings = { ...DEFAULT_SETTINGS }
+    override settings: PluginSettings = { ...DEFAULT_SETTINGS }
 
     /**
      * Executed as soon as the plugin loads

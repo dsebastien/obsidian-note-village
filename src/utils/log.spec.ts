@@ -91,15 +91,19 @@ describe('log', () => {
     })
 
     describe('info level', () => {
-        test('should use console.info', () => {
+        // Info routes through console.debug: console.info counts as
+        // "unnecessary logging" for the community catalog reviewer
+        // (obsidianmd rule-custom-message), and every log call here is
+        // already gated behind the debug-mode setting anyway.
+        test('should use console.debug', () => {
             log('info message', 'info')
-            expect(consoleInfoSpy).toHaveBeenCalledTimes(1)
-            expect(consoleDebugSpy).not.toHaveBeenCalled()
+            expect(consoleDebugSpy).toHaveBeenCalledTimes(1)
+            expect(consoleInfoSpy).not.toHaveBeenCalled()
         })
 
         test('should pass additional data', () => {
             log('info message', 'info', 'extra', 42)
-            expect(consoleInfoSpy).toHaveBeenCalledWith(expect.stringContaining('info message'), [
+            expect(consoleDebugSpy).toHaveBeenCalledWith(expect.stringContaining('info message'), [
                 'extra',
                 42
             ])

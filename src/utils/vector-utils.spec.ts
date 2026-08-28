@@ -9,7 +9,7 @@ const mockExVector = class MockVector {
     ) {}
 }
 
-mock.module('excalibur', () => ({
+void mock.module('excalibur', () => ({
     Vector: mockExVector
 }))
 

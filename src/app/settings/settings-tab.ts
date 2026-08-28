@@ -15,7 +15,7 @@ export class NoteVillageSettingTab extends PluginSettingTab {
         this.plugin = plugin
     }
 
-    display(): void {
+    override display(): void {
         const { containerEl } = this
         containerEl.empty()
 
@@ -323,9 +323,9 @@ export class NoteVillageSettingTab extends PluginSettingTab {
             .setDesc('Claude model to use for conversations')
             .addDropdown((dropdown) =>
                 dropdown
-                    .addOption(AIModel.CLAUDE_3_HAIKU, 'Claude 3 Haiku (Fast)')
+                    .addOption(AIModel.CLAUDE_3_HAIKU, 'Claude 3 Haiku (fast)')
                     .addOption(AIModel.CLAUDE_3_5_SONNET, 'Claude 3.5 Sonnet')
-                    .addOption(AIModel.CLAUDE_SONNET_4, 'Claude Sonnet 4 (Recommended)')
+                    .addOption(AIModel.CLAUDE_SONNET_4, 'Claude Sonnet 4 (recommended)')
                     .setValue(this.plugin.settings.aiModel)
                     .onChange(async (value) => {
                         await this.plugin.updateSetting('aiModel', value as AIModel)

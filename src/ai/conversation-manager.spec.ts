@@ -29,7 +29,7 @@ const MockAnthropic = mock(
     MockAnthropicAPIError
 
 // Mock modules before importing
-mock.module('@anthropic-ai/sdk', () => ({
+void mock.module('@anthropic-ai/sdk', () => ({
     default: MockAnthropic,
     Anthropic: MockAnthropic
 }))

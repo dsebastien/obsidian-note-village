@@ -65,7 +65,7 @@ class MockHTMLElement {
 }
 
 // Mock obsidian module
-mock.module('obsidian', () => ({
+void mock.module('obsidian', () => ({
     setIcon: (_el: MockHTMLElement, _icon: string) => {}
 }))
 
