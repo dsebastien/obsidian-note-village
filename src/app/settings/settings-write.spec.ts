@@ -205,24 +205,24 @@ describe('updateSettings', () => {
 describe('addExclusion', () => {
     test('trims folders and refuses blanks without writing', async () => {
         const { tab, plugin, saveData } = createHarness()
-        expect(await tab.addExclusion('excludedFolders', '   ')).toBe(false)
+        expect(await tab.addExclusion('excludedFolders', '   ')).toBe('empty')
         expect(saveData).not.toHaveBeenCalled()
 
-        expect(await tab.addExclusion('excludedFolders', '  Projects/Active  ')).toBe(true)
+        expect(await tab.addExclusion('excludedFolders', '  Projects/Active  ')).toBe('added')
         expect(plugin.settings.excludedFolders).toEqual(['Projects/Active'])
     })
 
     test('normalizes tags (strips # and lowercases)', async () => {
         const { tab, plugin } = createHarness()
-        expect(await tab.addExclusion('excludedTags', '#Archive')).toBe(true)
+        expect(await tab.addExclusion('excludedTags', '#Archive')).toBe('added')
         expect(plugin.settings.excludedTags).toEqual(['archive'])
     })
 
     test('refuses duplicates against the committed list', async () => {
         const { tab, plugin, regenerateVillage } = createHarness()
-        expect(await tab.addExclusion('excludedTags', 'daily')).toBe(true)
+        expect(await tab.addExclusion('excludedTags', 'daily')).toBe('added')
         regenerateVillage.mockClear()
-        expect(await tab.addExclusion('excludedTags', '#Daily')).toBe(false)
+        expect(await tab.addExclusion('excludedTags', '#Daily')).toBe('duplicate')
         expect(plugin.settings.excludedTags).toEqual(['daily'])
         expect(regenerateVillage).not.toHaveBeenCalled()
     })
@@ -251,9 +251,29 @@ describe('setControlValue', () => {
 
     test('rejects a type-mismatched value without writing', async () => {
         const { tab, plugin, saveData } = createHarness()
-        await expectRejection(tab.setControlValue('topTagCount', 'twelve'), 'expects a number')
+        await expectRejection(
+            tab.setControlValue('topTagCount', 'twelve'),
+            'expects a whole number'
+        )
         expect(saveData).not.toHaveBeenCalled()
         expect(plugin.settings.topTagCount).toBe(DEFAULT_SETTINGS.topTagCount)
+    })
+
+    test('rejects non-integer and out-of-range numbers', async () => {
+        const { tab, plugin, saveData } = createHarness()
+        await expectRejection(tab.setControlValue('topTagCount', 12.5), 'expects a whole number')
+        await expectRejection(
+            tab.setControlValue('topTagCount', Infinity),
+            'expects a whole number'
+        )
+        await expectRejection(tab.setControlValue('topTagCount', 21), 'between 3 and 20')
+        await expectRejection(tab.setControlValue('maxVillagers', 9), 'between 10 and 500')
+        expect(saveData).not.toHaveBeenCalled()
+        expect(plugin.settings.topTagCount).toBe(DEFAULT_SETTINGS.topTagCount)
+        expect(plugin.settings.maxVillagers).toBe(DEFAULT_SETTINGS.maxVillagers)
+
+        await tab.setControlValue('topTagCount', 20)
+        expect(plugin.settings.topTagCount).toBe(20)
     })
 
     test('rejects a dropdown value outside the declared options', async () => {

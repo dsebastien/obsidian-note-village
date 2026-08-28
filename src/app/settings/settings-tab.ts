@@ -99,19 +99,6 @@ export class NoteVillageSettingTab extends PluginSettingTab {
                             max: 500,
                             step: 10
                         }
-                    },
-                    {
-                        name: 'Regenerate village',
-                        desc: 'Regenerate the village layout with current settings',
-                        // A button, not a row `action:` — `action:` makes the
-                        // WHOLE row clickable and draws no button at all.
-                        render: (setting): void => {
-                            setting.addButton((button) =>
-                                button.setButtonText('Regenerate').onClick(() => {
-                                    this.plugin.regenerateVillage()
-                                })
-                            )
-                        }
                     }
                 ]
             },
@@ -129,6 +116,21 @@ export class NoteVillageSettingTab extends PluginSettingTab {
                 'Tags to exclude from zone selection (notes with only these tags will not become villagers)',
                 'No tags excluded.'
             ),
+            {
+                name: 'Regenerate village',
+                desc: 'Regenerate the village layout with current settings',
+                // A button, not a row `action:` — `action:` makes the WHOLE
+                // row clickable and draws no button at all. Kept after the
+                // exclusion lists so, as in the previous tab, the action
+                // follows every input it applies to.
+                render: (setting): void => {
+                    setting.addButton((button) =>
+                        button.setButtonText('Regenerate').onClick(() => {
+                            this.plugin.regenerateVillage()
+                        })
+                    )
+                }
+            },
             {
                 type: 'group',
                 heading: 'Display',
@@ -158,10 +160,15 @@ export class NoteVillageSettingTab extends PluginSettingTab {
                         // A render row rather than a text control: the input is
                         // masked (type=password), which the declarative text
                         // control cannot express. Keystroke writes go through
-                        // the serialized write path and do NOT re-sync the
-                        // input on success (a re-sync would clobber text typed
-                        // ahead of the queued save); a failed write re-syncs to
-                        // the committed truth.
+                        // the serialized write path and never re-sync the
+                        // input — not on success (a re-sync would clobber text
+                        // typed ahead of the queued save) and not on failure
+                        // either: every write carries the WHOLE displayed
+                        // value, so leaving the typed text means the next
+                        // keystroke re-persists exactly what the user sees,
+                        // while a failure re-sync could roll the input back
+                        // underneath newer queued writes and make the display
+                        // diverge from what later persists.
                         render: (setting): void => {
                             setting.addText((text) => {
                                 text.inputEl.type = 'password'
@@ -174,7 +181,6 @@ export class NoteVillageSettingTab extends PluginSettingTab {
                                             })
                                             .catch(() => {
                                                 new Notice('Failed to save settings.')
-                                                text.setValue(this.plugin.settings.anthropicApiKey)
                                             })
                                     })
                             })
@@ -268,11 +274,14 @@ export class NoteVillageSettingTab extends PluginSettingTab {
      * quick additions would each build on the same base, the second silently
      * dropping the first.
      */
-    async addExclusion(key: 'excludedFolders' | 'excludedTags', raw: string): Promise<boolean> {
+    async addExclusion(
+        key: 'excludedFolders' | 'excludedTags',
+        raw: string
+    ): Promise<'added' | 'duplicate' | 'empty'> {
         const value =
             key === 'excludedTags' ? raw.trim().replace(/^#/, '').toLowerCase() : raw.trim()
         if (value === '') {
-            return false
+            return 'empty'
         }
         let added = false
         await this.plugin.updateSettings((draft) => {
@@ -284,8 +293,9 @@ export class NoteVillageSettingTab extends PluginSettingTab {
         })
         if (added) {
             this.plugin.regenerateVillage()
+            return 'added'
         }
-        return added
+        return 'duplicate'
     }
 
     /**
@@ -325,12 +335,16 @@ export class NoteVillageSettingTab extends PluginSettingTab {
                         cb.onClick(() => {
                             const raw = searchInput?.getValue() ?? ''
                             void (async (): Promise<void> => {
-                                // Re-render only when something was written: a
-                                // refused blank/duplicate is a no-op, and a
-                                // rebuild would still discard unsaved edits
-                                // elsewhere in the pane.
-                                if (await this.addExclusion(key, raw)) {
+                                const outcome = await this.addExclusion(key, raw)
+                                // The previous tab cleared the input for
+                                // duplicates too — the entry is present either
+                                // way. Re-render only when something was
+                                // written: a rebuild on a no-op would still
+                                // discard unsaved edits elsewhere in the pane.
+                                if (outcome !== 'empty') {
                                     searchInput?.setValue('')
+                                }
+                                if (outcome === 'added') {
                                     this.update()
                                 }
                             })().catch(() => {
@@ -417,12 +431,12 @@ export class NoteVillageSettingTab extends PluginSettingTab {
                 })
                 break
             case 'topTagCount':
-                await this.writeNumber(key, value, (draft, next) => {
+                await this.writeNumber(key, value, 3, 20, (draft, next) => {
                     draft.topTagCount = next
                 })
                 break
             case 'maxVillagers':
-                await this.writeNumber(key, value, (draft, next) => {
+                await this.writeNumber(key, value, 10, 500, (draft, next) => {
                     draft.maxVillagers = next
                 })
                 break
@@ -481,13 +495,24 @@ export class NoteVillageSettingTab extends PluginSettingTab {
         })
     }
 
+    /**
+     * The slider constrains what the UI can produce, but `setControlValue` is
+     * a public write surface: an unconstrained value (`Infinity` serializes as
+     * `null` and makes the next load reject the whole settings object) must
+     * never reach the store.
+     */
     private async writeNumber(
         key: string,
         value: unknown,
+        min: number,
+        max: number,
         write: (draft: PluginSettings, next: number) => void
     ): Promise<void> {
-        if (typeof value !== 'number' || Number.isNaN(value)) {
-            throw new Error(`Setting "${key}" expects a number.`)
+        if (typeof value !== 'number' || !Number.isInteger(value)) {
+            throw new Error(`Setting "${key}" expects a whole number.`)
+        }
+        if (value < min || value > max) {
+            throw new Error(`Setting "${key}" expects a value between ${min} and ${max}.`)
         }
         await this.plugin.updateSettings((draft) => {
             write(draft, value)

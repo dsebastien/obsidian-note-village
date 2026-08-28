@@ -21,6 +21,8 @@ Note Village transforms your Obsidian vault into an interactive JRPG-style world
 
 ## Installation
 
+> Requires Obsidian **1.13.0 or newer** (the plugin uses the declarative settings API introduced there).
+
 ### Community plugins (recommended)
 
 1. In Obsidian, go to **Settings → Community plugins**.
