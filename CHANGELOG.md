@@ -2,6 +2,47 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.0](https://github.com/dsebastien/obsidian-note-village/compare/1.4.0...2.0.0) (2026-08-29)
+
+### ⚠ BREAKING CHANGES
+
+* **plugin:** minAppVersion moves from 1.8.7 to 1.13.0 — the
+declarative settings API (getSettingDefinitions) only exists there.
+
+getSettingDefinitions() replaces display() wholesale: five groups of
+plain controls (text/slider/dropdown/toggle), the two exclusion lists as
+native type:'list' definitions with an inline suggester add-row (the
+framework's addItem cannot host the folder/tag autocomplete the old tab
+had), the API key as a masked render row, the regenerate action as a
+button row (a row action: draws no button), and the support block as a
+render row on the settings-stack class (unlayered — Obsidian's own
+.setting-item flex rule is unlayered and would win otherwise).
+
+The write path is now a single serialized persist-then-commit
+updateSettings(mutator) on the plugin (immer): memory is swapped only
+after saveData() succeeds, overlapping writes derive from the committed
+state, and side effects run strictly after the commit — debug logging
+tracks the committed debugMode, village-shape writes regenerate the
+village. setControlValue rejects type mismatches, out-of-enum dropdown
+values and unknown keys instead of resolving.
+
+14 new tests cover the write path; the persist-then-commit ordering and
+the serialization were each mutation-checked (deliberately regressed
+implementations fail them). 416 tests, tsc, lint --max-warnings 0 and
+build green — the prefer-setting-definitions advisory from the previous
+commit is now satisfied.
+
+### Features
+
+* **plugin:** declare the settings tab (Obsidian 1.13 declarative settings) ([3af62b0](https://github.com/dsebastien/obsidian-note-village/commit/3af62b08af5d92c8e59ecdd50218ceddf53d4bcc))
+* **plugin:** show what's new in a tab instead of a modal dialog ([8e943db](https://github.com/dsebastien/obsidian-note-village/commit/8e943db381d6ae4a2f1b7e521522b809766e39a4))
+* **plugin:** surface support CTAs everywhere users can see them ([393cfde](https://github.com/dsebastien/obsidian-note-village/commit/393cfde8c730e35d04ccc04caaea57dfd04fc179))
+
+### Bug Fixes
+
+* **build:** align with the catalog reviewer's archive, ruleset and audit ([92d3533](https://github.com/dsebastien/obsidian-note-village/commit/92d35334f3751f0327ae92f2fa2aa80b8c03a15d))
+* **plugin:** harden the settings write surface after adversarial review ([129df0e](https://github.com/dsebastien/obsidian-note-village/commit/129df0e9c2ef64a8c86f10a709ceb6af870b23f8))
+
 ## [1.4.0](https://github.com/dsebastien/obsidian-note-village/compare/1.3.0...1.4.0) (2026-07-29)
 
 ### Features
@@ -88,6 +129,7 @@ All notable changes to this project will be documented in this file.
 * **all:** moved forest to become the borders of the world ([7d73a5d](https://github.com/dsebastien/obsidian-note-village/commit/7d73a5d7ddbe13d33586b0b4b88ee7e5e957b447))
 * **all:** switch to classic tiles ([f34ede3](https://github.com/dsebastien/obsidian-note-village/commit/f34ede3eb747d2eb510e500d4ae4c464d26dda96))
 * **all:** villagers stop moving while discussing ([8ec4b49](https://github.com/dsebastien/obsidian-note-village/commit/8ec4b49f51e93ef243734846f83a4472a61e880f))
+
 
 
 

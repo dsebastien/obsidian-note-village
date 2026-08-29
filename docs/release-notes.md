@@ -1,5 +1,46 @@
 # Release Notes
 
+## 2.0.0 (2026-08-29)
+
+### ⚠ BREAKING CHANGES
+
+- **plugin:** minAppVersion moves from 1.8.7 to 1.13.0 — the
+  declarative settings API (getSettingDefinitions) only exists there.
+
+getSettingDefinitions() replaces display() wholesale: five groups of
+plain controls (text/slider/dropdown/toggle), the two exclusion lists as
+native type:'list' definitions with an inline suggester add-row (the
+framework's addItem cannot host the folder/tag autocomplete the old tab
+had), the API key as a masked render row, the regenerate action as a
+button row (a row action: draws no button), and the support block as a
+render row on the settings-stack class (unlayered — Obsidian's own
+.setting-item flex rule is unlayered and would win otherwise).
+
+The write path is now a single serialized persist-then-commit
+updateSettings(mutator) on the plugin (immer): memory is swapped only
+after saveData() succeeds, overlapping writes derive from the committed
+state, and side effects run strictly after the commit — debug logging
+tracks the committed debugMode, village-shape writes regenerate the
+village. setControlValue rejects type mismatches, out-of-enum dropdown
+values and unknown keys instead of resolving.
+
+14 new tests cover the write path; the persist-then-commit ordering and
+the serialization were each mutation-checked (deliberately regressed
+implementations fail them). 416 tests, tsc, lint --max-warnings 0 and
+build green — the prefer-setting-definitions advisory from the previous
+commit is now satisfied.
+
+### Features
+
+- **plugin:** declare the settings tab (Obsidian 1.13 declarative settings)
+- **plugin:** show what's new in a tab instead of a modal dialog
+- **plugin:** surface support CTAs everywhere users can see them
+
+### Bug Fixes
+
+- **build:** align with the catalog reviewer's archive, ruleset and audit
+- **plugin:** harden the settings write surface after adversarial review
+
 ## 1.4.0 (2026-07-29)
 
 ### Features
