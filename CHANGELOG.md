@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.0](https://github.com/dsebastien/obsidian-note-village/compare/2.0.0...2.1.0) (2026-09-27)
+
+### Features
+
+* **build:** fail the build on a lockfile the catalog review cannot parse ([d57a890](https://github.com/dsebastien/obsidian-note-village/commit/d57a890db11f3ce4398075951945d9b33cc7a109))
+* **build:** make the rule floor check that it is still wired in ([398adc8](https://github.com/dsebastien/obsidian-note-village/commit/398adc8e4ed5d25bd4951afb1ab71ab71ae5c6e8))
+* **build:** refuse commits that loosen the rules instead of fixing the finding ([bc7c2e8](https://github.com/dsebastien/obsidian-note-village/commit/bc7c2e87d1956c1c2eedc654aa85611905d7c2c0))
+
+### Bug Fixes
+
+* **build:** harden the release path from the template ([5265242](https://github.com/dsebastien/obsidian-note-village/commit/526524235a6c153b1e82d96e0673c0ba3bf62220))
+* **build:** rebuild versions.json from the published releases ([b680db4](https://github.com/dsebastien/obsidian-note-village/commit/b680db4f281c80902151ae9f753f1b025e33efe3))
+* **deps:** move the fast-uri override off the vulnerable line ([e12f40d](https://github.com/dsebastien/obsidian-note-village/commit/e12f40d541fe8a2bf434d6f25f055d26558f474c))
+* **plugin:** lowercase the newsletter line ([017e9d5](https://github.com/dsebastien/obsidian-note-village/commit/017e9d5887a39b14041b00c589e396f9d6cceb07))
+
 ## [2.0.0](https://github.com/dsebastien/obsidian-note-village/compare/1.4.0...2.0.0) (2026-08-29)
 
 ### ⚠ BREAKING CHANGES
@@ -129,6 +144,7 @@ commit is now satisfied.
 * **all:** moved forest to become the borders of the world ([7d73a5d](https://github.com/dsebastien/obsidian-note-village/commit/7d73a5d7ddbe13d33586b0b4b88ee7e5e957b447))
 * **all:** switch to classic tiles ([f34ede3](https://github.com/dsebastien/obsidian-note-village/commit/f34ede3eb747d2eb510e500d4ae4c464d26dda96))
 * **all:** villagers stop moving while discussing ([8ec4b49](https://github.com/dsebastien/obsidian-note-village/commit/8ec4b49f51e93ef243734846f83a4472a61e880f))
+
 
 
 
