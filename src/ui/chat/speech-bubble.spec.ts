@@ -1,21 +1,16 @@
 import { describe, test, expect, beforeEach, afterEach, mock } from 'bun:test'
 
-// The implementation uses the window.* timer variants (for Obsidian
-// popout-window compatibility), so ensure a `window` exists that points at
-// globalThis where the mocks below live.
-;(globalThis as { window?: unknown }).window ??= globalThis
-
 // Mock requestAnimationFrame/cancelAnimationFrame
 let rafId = 0
 const rafCallbacks: Map<number, FrameRequestCallback> = new Map()
 
-globalThis.requestAnimationFrame = mock((callback: FrameRequestCallback) => {
+self.requestAnimationFrame = mock((callback: FrameRequestCallback) => {
     const id = ++rafId
     rafCallbacks.set(id, callback)
     return id
 })
 
-globalThis.cancelAnimationFrame = mock((id: number) => {
+self.cancelAnimationFrame = mock((id: number) => {
     rafCallbacks.delete(id)
 })
 
@@ -37,11 +32,11 @@ class MockHTMLElement {
 
     // Obsidian's HTMLElement helpers used by the implementation
     hide(): void {
-        this.style['display'] = 'none'
+        this.style = { ...this.style, display: 'none' }
     }
 
     show(): void {
-        this.style['display'] = ''
+        this.style = { ...this.style, display: '' }
     }
 
     remove(): void {}

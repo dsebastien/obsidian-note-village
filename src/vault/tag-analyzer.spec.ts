@@ -1,10 +1,11 @@
 import { describe, test, expect, beforeEach } from 'bun:test'
-import type { App, CachedMetadata, TFile } from 'obsidian'
+import { TFile, type App, type CachedMetadata } from 'obsidian'
 import { TagAnalyzer } from './tag-analyzer'
 
 // Helper to create mock TFile
 function createMockFile(path: string, basename: string): TFile {
-    return {
+    // A real TFile instance (see src/test/setup.ts), never a cast
+    return Object.assign(new TFile(), {
         path,
         basename,
         stat: { size: 1000, ctime: 1000000, mtime: 1000001 },
@@ -12,7 +13,7 @@ function createMockFile(path: string, basename: string): TFile {
         name: `${basename}.md`,
         parent: null,
         extension: 'md'
-    } as TFile
+    })
 }
 
 // Helper to create mock metadata

@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach, mock } from 'bun:test'
-import type { App, TFile } from 'obsidian'
+import { TFile, type App } from 'obsidian'
 import type { TagCount } from '#types/tag-count.intf'
 import type { ScannedNote } from '#types/scanned-note.intf'
 
@@ -44,7 +44,7 @@ function createMockNote(
     updated?: number
 ): ScannedNote {
     return {
-        file: { path: `notes/${name}.md` } as TFile,
+        file: Object.assign(new TFile(), { path: `notes/${name}.md` }),
         path: `notes/${name}.md`,
         name,
         tags: [tag],

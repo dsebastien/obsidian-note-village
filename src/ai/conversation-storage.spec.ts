@@ -1,7 +1,11 @@
 import { describe, test, expect, beforeEach } from 'bun:test'
-import type { App, TFile, TAbstractFile, TFolder } from 'obsidian'
+import { TFile, TFolder, type App, type TAbstractFile } from 'obsidian'
 import type { ConversationState } from '#types/conversation-state.intf'
 import { ConversationStorage } from './conversation-storage'
+
+/** A vault file double: a real TFile instance (see src/test/setup.ts), never a cast */
+const vaultFile = (props: { path: string; basename?: string }): TFile =>
+    Object.assign(new TFile(), props)
 
 // Helper to create mock conversation state
 function createConversation(overrides: Partial<ConversationState> = {}): ConversationState {
@@ -32,21 +36,22 @@ describe('ConversationStorage', () => {
 
         mockApp = {
             vault: {
-                create: async (path: string, content: string) => {
+                create: (path: string, content: string): Promise<TFile> => {
                     createdFiles.push({ path, content })
-                    return { path } as TFile
+                    return Promise.resolve(vaultFile({ path }))
                 },
-                createFolder: async (path: string) => {
+                createFolder: (path: string): Promise<void> => {
                     existingFolders.add(path)
+                    return Promise.resolve()
                 },
                 getAbstractFileByPath: (path: string): TAbstractFile | null => {
                     if (existingFolders.has(path)) {
-                        return { path } as TAbstractFile
+                        return Object.assign(new TFolder(), { path })
                     }
                     return null
                 },
                 getMarkdownFiles: () => existingFiles,
-                read: async (_file: TFile) => ''
+                read: (_file: TFile): Promise<string> => Promise.resolve('')
             }
         } as unknown as App
     })
@@ -96,9 +101,9 @@ describe('ConversationStorage', () => {
         test('should not recreate folder if it exists', async () => {
             existingFolders.add('Conversations')
             let folderCreateCount = 0
-            mockApp.vault.createFolder = async (path: string) => {
+            mockApp.vault.createFolder = (path: string): Promise<TFolder> => {
                 folderCreateCount++
-                return { path } as unknown as TFolder
+                return Promise.resolve(Object.assign(new TFolder(), { path }))
             }
 
             const storage = new ConversationStorage(mockApp, 'Conversations')
@@ -188,9 +193,8 @@ describe('ConversationStorage', () => {
         })
 
         test('should handle errors gracefully and return null', async () => {
-            mockApp.vault.create = async () => {
-                throw new Error('Failed to create file')
-            }
+            mockApp.vault.create = (): Promise<TFile> =>
+                Promise.reject(new Error('Failed to create file'))
 
             const storage = new ConversationStorage(mockApp, 'Conversations')
             const result = await storage.saveConversation(createConversation())
@@ -221,10 +225,10 @@ describe('ConversationStorage', () => {
         test('should return empty array when no matching files', async () => {
             existingFolders.add('Conversations')
             existingFiles = [
-                {
+                vaultFile({
                     path: 'Conversations/OtherVillager-2024-01-15.md',
                     basename: 'OtherVillager-2024-01-15'
-                } as TFile
+                })
             ]
 
             const storage = new ConversationStorage(mockApp, 'Conversations')
@@ -236,13 +240,14 @@ describe('ConversationStorage', () => {
         test('should load conversations for matching villager', async () => {
             existingFolders.add('Conversations')
             existingFiles = [
-                {
+                vaultFile({
                     path: 'Conversations/TestVillager-2024-01-15.md',
                     basename: 'TestVillager-2024-01-15'
-                } as TFile
+                })
             ]
 
-            mockApp.vault.read = async () => `---
+            mockApp.vault.read = (): Promise<string> =>
+                Promise.resolve(`---
 villager: "[[notes/test.md|TestVillager]]"
 started: 2024-01-15T10:00:00.000Z
 ---
@@ -254,7 +259,7 @@ Hello!
 
 **TestVillager:**
 Hi there!
-`
+`)
 
             const storage = new ConversationStorage(mockApp, 'Conversations')
             const result = await storage.loadConversationsForVillager('TestVillager')
@@ -267,31 +272,31 @@ Hi there!
         test('should sort conversations by date (newest first)', async () => {
             existingFolders.add('Conversations')
             existingFiles = [
-                {
+                vaultFile({
                     path: 'Conversations/Test-old.md',
                     basename: 'Test-old'
-                } as TFile,
-                {
+                }),
+                vaultFile({
                     path: 'Conversations/Test-new.md',
                     basename: 'Test-new'
-                } as TFile
+                })
             ]
 
             let readCount = 0
-            mockApp.vault.read = async () => {
+            mockApp.vault.read = (): Promise<string> => {
                 readCount++
                 if (readCount === 1) {
-                    return `**You:**
+                    return Promise.resolve(`**You:**
 First
 
 **Test:**
-Response`
+Response`)
                 }
-                return `**You:**
+                return Promise.resolve(`**You:**
 Second
 
 **Test:**
-Response`
+Response`)
             }
 
             const storage = new ConversationStorage(mockApp, 'Conversations')
@@ -304,27 +309,27 @@ Response`
         test('should skip files that cannot be parsed', async () => {
             existingFolders.add('Conversations')
             existingFiles = [
-                {
+                vaultFile({
                     path: 'Conversations/Test-valid.md',
                     basename: 'Test-valid'
-                } as TFile,
-                {
+                }),
+                vaultFile({
                     path: 'Conversations/Test-invalid.md',
                     basename: 'Test-invalid'
-                } as TFile
+                })
             ]
 
             let readCount = 0
-            mockApp.vault.read = async () => {
+            mockApp.vault.read = (): Promise<string> => {
                 readCount++
                 if (readCount === 1) {
-                    return `**You:**
+                    return Promise.resolve(`**You:**
 Hello
 
 **Test:**
-Hi`
+Hi`)
                 }
-                throw new Error('Cannot read file')
+                return Promise.reject(new Error('Cannot read file'))
             }
 
             const storage = new ConversationStorage(mockApp, 'Conversations')

@@ -1,10 +1,11 @@
 import { describe, test, expect, beforeEach } from 'bun:test'
-import type { App, CachedMetadata, TFile } from 'obsidian'
+import { TFile, type App, type CachedMetadata } from 'obsidian'
 import { NoteScanner } from './note-scanner'
 
 // Helper to create mock TFile
 function createMockFile(path: string, basename: string, size = 1000): TFile {
-    return {
+    // A real TFile instance (see src/test/setup.ts), never a cast
+    return Object.assign(new TFile(), {
         path,
         basename,
         stat: {
@@ -16,7 +17,7 @@ function createMockFile(path: string, basename: string, size = 1000): TFile {
         name: `${basename}.md`,
         parent: null,
         extension: 'md'
-    } as TFile
+    })
 }
 
 // Helper to create mock metadata
@@ -57,7 +58,7 @@ describe('NoteScanner', () => {
         mockApp = {
             vault: {
                 getMarkdownFiles: () => mockFiles,
-                read: async (_file: TFile) => 'mock content'
+                read: (_file: TFile): Promise<string> => Promise.resolve('mock content')
             },
             metadataCache: {
                 getFileCache: (file: TFile) => mockMetadataCache.get(file.path) ?? null
@@ -309,7 +310,7 @@ describe('NoteScanner', () => {
     describe('readNoteContent', () => {
         test('should read file content', async () => {
             const file = createMockFile('note.md', 'note')
-            mockApp.vault.read = async () => 'This is the note content.'
+            mockApp.vault.read = (): Promise<string> => Promise.resolve('This is the note content.')
 
             const scanner = new NoteScanner(mockApp)
             const result = await scanner.readNoteContent(file)

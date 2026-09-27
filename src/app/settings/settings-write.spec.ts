@@ -11,27 +11,8 @@ import { AIModel } from '#types/ai-model.intf'
  * and the debug-mode side effect tracks the COMMITTED state.
  */
 
-// The obsidian package is types-only (no runtime code); the plugin and tab
-// modules need runtime stand-ins for the classes they extend or construct.
-void mock.module('obsidian', () => ({
-    Notice: class Notice {},
-    App: class App {},
-    Plugin: class Plugin {},
-    PluginSettingTab: class PluginSettingTab {},
-    ItemView: class ItemView {},
-    Component: class Component {},
-    Modal: class Modal {},
-    WorkspaceLeaf: class WorkspaceLeaf {},
-    Setting: class Setting {},
-    TAbstractFile: class TAbstractFile {},
-    TFile: class TFile {},
-    TFolder: class TFolder {},
-    AbstractInputSuggest: class AbstractInputSuggest {},
-    SearchComponent: class SearchComponent {},
-    MarkdownRenderer: { render: async () => {} },
-    setIcon: () => {},
-    setTooltip: () => {}
-}))
+// The obsidian stand-ins the plugin and tab modules need come from the test
+// preload (src/test/setup.ts).
 setupExcaliburMock()
 // The plugin module imports VillageView, whose scene graph reaches excalibur
 // classes the shared mock does not model (ex.Scene et al.). The view itself is

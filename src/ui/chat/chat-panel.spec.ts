@@ -1,4 +1,4 @@
-import { describe, test, expect, mock, beforeEach } from 'bun:test'
+import { describe, test, expect, beforeEach } from 'bun:test'
 import type { Villager } from '../../game/actors/villager.actor'
 
 // Create mock DOM elements
@@ -64,10 +64,8 @@ class MockHTMLElement {
     removeClass(_cls: string): void {}
 }
 
-// Mock obsidian module
-void mock.module('obsidian', () => ({
-    setIcon: (_el: MockHTMLElement, _icon: string) => {}
-}))
+// setIcon comes from the obsidian stand-ins in the test preload
+// (src/test/setup.ts)
 
 // Mock Villager
 class MockVillager {

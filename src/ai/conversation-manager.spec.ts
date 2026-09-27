@@ -11,9 +11,11 @@ class MockAnthropicAPIError extends Error {
     }
 }
 
-const mockMessagesCreate = mock(async () => ({
-    content: [{ type: 'text', text: 'Mock AI response' }]
-}))
+const mockMessagesCreate = mock(() =>
+    Promise.resolve({
+        content: [{ type: 'text', text: 'Mock AI response' }]
+    })
+)
 
 const MockAnthropic = mock(
     () =>
@@ -41,9 +43,11 @@ describe('ConversationManager', () => {
     beforeEach(() => {
         MockAnthropic.mockClear()
         mockMessagesCreate.mockClear()
-        mockMessagesCreate.mockImplementation(async () => ({
-            content: [{ type: 'text', text: 'Mock AI response' }]
-        }))
+        mockMessagesCreate.mockImplementation(() =>
+            Promise.resolve({
+                content: [{ type: 'text', text: 'Mock AI response' }]
+            })
+        )
     })
 
     describe('constructor', () => {
@@ -173,8 +177,8 @@ describe('ConversationManager', () => {
             expect(mockMessagesCreate).toHaveBeenCalledWith({
                 model: AIModel.CLAUDE_3_5_SONNET,
                 max_tokens: 300,
-                system: expect.any(String),
-                messages: expect.any(Array)
+                system: expect.any(String) as string,
+                messages: expect.any(Array) as unknown[]
             })
         })
 
@@ -189,9 +193,11 @@ describe('ConversationManager', () => {
         })
 
         test('should return AI response', async () => {
-            mockMessagesCreate.mockImplementation(async () => ({
-                content: [{ type: 'text', text: 'Custom AI response' }]
-            }))
+            mockMessagesCreate.mockImplementation(() =>
+                Promise.resolve({
+                    content: [{ type: 'text', text: 'Custom AI response' }]
+                })
+            )
 
             const manager = new ConversationManager('key', AIModel.CLAUDE_3_HAIKU)
             manager.startConversation('Test', 'path', 'content')
@@ -211,10 +217,9 @@ describe('ConversationManager', () => {
         })
 
         test('should handle 401 API error', async () => {
-            mockMessagesCreate.mockImplementation(async () => {
-                const error = new MockAnthropicAPIError('Unauthorized', 401)
-                throw error
-            })
+            mockMessagesCreate.mockImplementation(() =>
+                Promise.reject(new MockAnthropicAPIError('Unauthorized', 401))
+            )
 
             const manager = new ConversationManager('invalid-key', AIModel.CLAUDE_3_HAIKU)
             manager.startConversation('Test', 'path', 'content')
@@ -224,10 +229,9 @@ describe('ConversationManager', () => {
         })
 
         test('should handle 429 rate limit error', async () => {
-            mockMessagesCreate.mockImplementation(async () => {
-                const error = new MockAnthropicAPIError('Rate limited', 429)
-                throw error
-            })
+            mockMessagesCreate.mockImplementation(() =>
+                Promise.reject(new MockAnthropicAPIError('Rate limited', 429))
+            )
 
             const manager = new ConversationManager('key', AIModel.CLAUDE_3_HAIKU)
             manager.startConversation('Test', 'path', 'content')
@@ -237,10 +241,9 @@ describe('ConversationManager', () => {
         })
 
         test('should handle generic API errors', async () => {
-            mockMessagesCreate.mockImplementation(async () => {
-                const error = new MockAnthropicAPIError('Server error', 500)
-                throw error
-            })
+            mockMessagesCreate.mockImplementation(() =>
+                Promise.reject(new MockAnthropicAPIError('Server error', 500))
+            )
 
             const manager = new ConversationManager('key', AIModel.CLAUDE_3_HAIKU)
             manager.startConversation('Test', 'path', 'content')
@@ -250,9 +253,7 @@ describe('ConversationManager', () => {
         })
 
         test('should handle unknown errors', async () => {
-            mockMessagesCreate.mockImplementation(async () => {
-                throw new Error('Unknown error')
-            })
+            mockMessagesCreate.mockImplementation(() => Promise.reject(new Error('Unknown error')))
 
             const manager = new ConversationManager('key', AIModel.CLAUDE_3_HAIKU)
             manager.startConversation('Test', 'path', 'content')
