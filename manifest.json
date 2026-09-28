@@ -2,7 +2,7 @@
     "id": "note-village",
     "name": "Note Village",
     "description": "A 2D pixel art village where your notes become villagers you can explore and chat with using AI.",
-    "version": "2.1.0",
+    "version": "2.1.1",
     "minAppVersion": "1.13.0",
     "isDesktopOnly": false,
     "author": "Sébastien Dubois",
