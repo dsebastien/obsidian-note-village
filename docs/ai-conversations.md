@@ -13,7 +13,15 @@ Note Village uses Claude AI to bring your notes to life through conversations.
 
 1. Get an API key from [Anthropic Console](https://console.anthropic.com/)
 2. Open **Settings → Note Village**
-3. Enter your API key in the **Anthropic API Key** field
+3. In **Anthropic API key**, select an existing secret or create one and paste your key
+
+The key is kept in Obsidian's secret storage, never in the plugin's settings file (`data.json`), so it does not travel with your vault through Git, Syncthing or cloud sync. Secret storage is per device: on a new device, set the secret once.
+
+#### Upgrading from an earlier version
+
+Earlier versions stored the key in plain text in `data.json`. Each device moves it into its own secret storage automatically the next time it starts this version, so every synced device keeps working with no action. The plain-text copy is removed from `data.json` 60 days after the first migration, or immediately with **Remove plain-text copy now** (do this once all your devices run this version).
+
+**Clear API key** removes the key from this device and deletes the plain-text copy.
 
 ### Model Selection
 
@@ -119,6 +127,10 @@ The AI doesn't know:
 - Consider note length when planning conversations
 
 ## Troubleshooting
+
+### "AI is not configured"
+
+- No key was found on this device: select or create the secret in **Settings → Note Village → Anthropic API key**
 
 ### "API Key Invalid"
 

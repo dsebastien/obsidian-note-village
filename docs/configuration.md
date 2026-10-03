@@ -48,9 +48,19 @@ All settings are accessible via **Settings → Note Village**.
 
 ### Anthropic API Key
 
-- **Type**: Password
-- **Default**: Empty
-- **Description**: Your Anthropic API key for Claude conversations.
+- **Type**: Secret (Obsidian secret storage)
+- **Default**: secret named `note-village-anthropic-api-key`
+- **Description**: The secret holding your Anthropic API key for Claude conversations. Only the secret's name is saved in the plugin settings; the key stays in secret storage on each device. Keys stored in plain text by earlier versions are migrated automatically on every device; the plain-text copy is removed after 60 days.
+
+### Clear API key
+
+- **Type**: Button
+- **Description**: Removes the key from this device's secret storage and deletes the plain-text copy from the settings file.
+
+### Remove plain-text copy now
+
+- **Type**: Button (shown only while a plain-text copy from an earlier version exists)
+- **Description**: Deletes the plain-text key from the settings file before the 60-day grace period ends. Use it once all your devices run this version.
 
 ### AI Model
 

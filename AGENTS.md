@@ -325,7 +325,7 @@ When adding new settings, determine if they affect village generation. If so, ca
 **Settings that do NOT trigger regeneration** (config/visual only):
 
 - `renderQuality` - only affects graphics performance
-- `anthropicApiKey`, `aiModel` - AI conversation config
+- `anthropicApiKeySecretName`, `aiModel` - AI conversation config
 - `saveConversations`, `conversationFolder` - storage config
 
 **Pattern for generation-affecting settings:**

@@ -80,7 +80,7 @@ export class VillageView extends ItemView {
 
         // Initialize AI components
         this.conversationManager = new ConversationManager(
-            this.plugin.settings.anthropicApiKey,
+            () => this.plugin.getAnthropicApiKey(),
             this.plugin.settings.aiModel
         )
         this.conversationStorage = new ConversationStorage(
@@ -260,7 +260,7 @@ export class VillageView extends ItemView {
             response = await this.conversationManager.sendMessage(message)
         } else {
             // Fallback when no API key
-            response = `I'm ${this.currentVillager.getNoteName()}. To have a real conversation, please add your Anthropic API key in the plugin settings.`
+            response = `I'm ${this.currentVillager.getNoteName()}. To have a real conversation, set your Anthropic API key in the plugin settings. Secrets are stored per device, so it may need setting once on this device.`
         }
 
         // Add assistant message to chat
@@ -383,7 +383,6 @@ export class VillageView extends ItemView {
      */
     updateSettings(): void {
         if (this.conversationManager) {
-            this.conversationManager.setApiKey(this.plugin.settings.anthropicApiKey)
             this.conversationManager.setModel(this.plugin.settings.aiModel)
         }
         if (this.conversationStorage) {

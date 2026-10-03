@@ -35,6 +35,7 @@ void mock.module('obsidian', () => ({
     TFolder,
     AbstractInputSuggest: class AbstractInputSuggest {},
     SearchComponent: class SearchComponent {},
+    SecretComponent: class SecretComponent {},
     MarkdownRenderer: { render: (): Promise<void> => Promise.resolve() },
     setIcon: (): void => {},
     setTooltip: (): void => {}

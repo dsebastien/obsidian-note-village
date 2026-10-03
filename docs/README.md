@@ -19,7 +19,7 @@ Transform your Obsidian vault into a living 2D pixel art village where your note
 ## Quick Start
 
 1. Install the plugin from Obsidian Community Plugins
-2. Open **Settings → Note Village** and configure your Anthropic API key (for AI conversations)
+2. Open **Settings → Note Village** and select or create the secret holding your Anthropic API key (for AI conversations)
 3. Use the command **Note Village: Open village** or click the village icon in the ribbon
 4. Explore your vault as a village and talk to your notes!
 

@@ -8,6 +8,7 @@ import { DEFAULT_SETTINGS } from '#types/plugin-settings.intf'
 import { NoteVillageSettingTab } from './settings/settings-tab'
 import { VillageView } from '../ui/village-view'
 import { log, setDebugMode } from '../utils/log'
+import { bootstrapApiKeySecret, resolveApiKey } from './services/api-key-secret'
 
 /**
  * View type identifier for the village view
@@ -75,12 +76,60 @@ export class NoteVillagePlugin extends Plugin {
         const parseResult = PluginSettingsSchema.safeParse(loadedData)
 
         if (parseResult.success) {
-            this.settings = parseResult.data
-            log('Settings loaded', 'debug', this.settings)
+            log('Settings loaded', 'debug')
+            // Per-device move of a legacy plaintext key into this device's
+            // SecretStorage (see bootstrapApiKeySecret).
+            const bootstrapped = bootstrapApiKeySecret(
+                parseResult.data,
+                this.app.secretStorage,
+                new Date()
+            )
+            this.settings = bootstrapped
+            if (bootstrapped !== parseResult.data) {
+                // On failure the secret is already stored on this device, and
+                // the next load re-runs the (idempotent) bootstrap.
+                try {
+                    await this.saveSettings()
+                } catch (error) {
+                    log('Failed to save migrated settings', 'error', error)
+                }
+            }
         } else {
             log('Invalid settings, using defaults', 'warn', parseResult.error)
             this.settings = { ...DEFAULT_SETTINGS }
         }
+    }
+
+    /**
+     * The Anthropic API key, read from SecretStorage at use time ('' when not
+     * set on this device). Never cached in the settings object.
+     */
+    getAnthropicApiKey(): string {
+        return resolveApiKey(this.settings, this.app.secretStorage)
+    }
+
+    /**
+     * Clears the API key: this device's secret (SecretStorage has no delete,
+     * '' counts as absent) AND the legacy plaintext copy, so no device can
+     * bootstrap it back.
+     */
+    async clearAnthropicApiKey(): Promise<void> {
+        const name = this.settings.anthropicApiKeySecretName
+        if (name !== '') {
+            this.app.secretStorage.setSecret(name, '')
+        }
+        await this.removeLegacyApiKeyCopy()
+    }
+
+    /**
+     * Removes the legacy plaintext key from data.json now, instead of waiting
+     * for the grace period. Devices that have not started this version yet
+     * then need the secret set by hand.
+     */
+    removeLegacyApiKeyCopy(): Promise<void> {
+        return this.updateSettings((draft) => {
+            delete draft.anthropicApiKey
+        })
     }
 
     /**

@@ -9,6 +9,12 @@ import { RenderQuality } from '#types/render-quality.intf'
 export type PluginSettings = z.infer<typeof PluginSettingsSchema>
 
 /**
+ * Default SecretStorage name for the Anthropic API key (`<plugin-id>-<what>`,
+ * lowercase alphanumeric and dashes as SecretStorage requires).
+ */
+export const DEFAULT_ANTHROPIC_API_KEY_SECRET_NAME = 'note-village-anthropic-api-key'
+
+/**
  * Default settings
  */
 export const DEFAULT_SETTINGS: PluginSettings = {
@@ -19,7 +25,8 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     excludedFolders: [],
     excludedTags: [],
     renderQuality: RenderQuality.HIGH,
-    anthropicApiKey: '',
+    anthropicApiKeySecretName: DEFAULT_ANTHROPIC_API_KEY_SECRET_NAME,
+    legacySecretMigratedAt: '',
     aiModel: AIModel.CLAUDE_SONNET_4,
     saveConversations: true,
     conversationFolder: 'village-conversations',

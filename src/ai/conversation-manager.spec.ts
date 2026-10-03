@@ -52,19 +52,23 @@ describe('ConversationManager', () => {
 
     describe('constructor', () => {
         test('should create instance without API key', () => {
-            const manager = new ConversationManager('', AIModel.CLAUDE_3_HAIKU)
+            const manager = new ConversationManager(() => '', AIModel.CLAUDE_3_HAIKU)
             expect(manager).toBeDefined()
             expect(manager.isConfigured()).toBe(false)
         })
 
         test('should create instance with API key', () => {
-            const manager = new ConversationManager('test-api-key', AIModel.CLAUDE_3_HAIKU)
+            const manager = new ConversationManager(() => 'test-api-key', AIModel.CLAUDE_3_HAIKU)
             expect(manager).toBeDefined()
             expect(manager.isConfigured()).toBe(true)
         })
 
-        test('should initialize Anthropic client when API key provided', () => {
-            new ConversationManager('test-api-key', AIModel.CLAUDE_3_HAIKU)
+        test('should build the Anthropic client lazily, with the key read at use time', async () => {
+            const manager = new ConversationManager(() => 'test-api-key', AIModel.CLAUDE_3_HAIKU)
+            expect(MockAnthropic).not.toHaveBeenCalled()
+
+            manager.startConversation('Villager', 'note.md', 'content')
+            await manager.sendMessage('Hello')
             expect(MockAnthropic).toHaveBeenCalledWith({
                 apiKey: 'test-api-key',
                 dangerouslyAllowBrowser: true
@@ -74,19 +78,19 @@ describe('ConversationManager', () => {
 
     describe('isConfigured', () => {
         test('should return false when no API key', () => {
-            const manager = new ConversationManager('', AIModel.CLAUDE_3_HAIKU)
+            const manager = new ConversationManager(() => '', AIModel.CLAUDE_3_HAIKU)
             expect(manager.isConfigured()).toBe(false)
         })
 
         test('should return true when API key is provided', () => {
-            const manager = new ConversationManager('valid-key', AIModel.CLAUDE_3_HAIKU)
+            const manager = new ConversationManager(() => 'valid-key', AIModel.CLAUDE_3_HAIKU)
             expect(manager.isConfigured()).toBe(true)
         })
     })
 
     describe('startConversation', () => {
         test('should initialize conversation state', () => {
-            const manager = new ConversationManager('key', AIModel.CLAUDE_3_HAIKU)
+            const manager = new ConversationManager(() => 'key', AIModel.CLAUDE_3_HAIKU)
             manager.startConversation('TestVillager', 'notes/test.md', 'Note content here')
 
             const conversation = manager.getCurrentConversation()
@@ -99,7 +103,7 @@ describe('ConversationManager', () => {
         })
 
         test('should replace existing conversation', () => {
-            const manager = new ConversationManager('key', AIModel.CLAUDE_3_HAIKU)
+            const manager = new ConversationManager(() => 'key', AIModel.CLAUDE_3_HAIKU)
             manager.startConversation('First', 'path1', 'content1')
             manager.startConversation('Second', 'path2', 'content2')
 
@@ -110,7 +114,7 @@ describe('ConversationManager', () => {
 
     describe('endConversation', () => {
         test('should return current conversation and clear it', () => {
-            const manager = new ConversationManager('key', AIModel.CLAUDE_3_HAIKU)
+            const manager = new ConversationManager(() => 'key', AIModel.CLAUDE_3_HAIKU)
             manager.startConversation('Test', 'path', 'content')
 
             const result = manager.endConversation()
@@ -119,19 +123,19 @@ describe('ConversationManager', () => {
         })
 
         test('should return null when no active conversation', () => {
-            const manager = new ConversationManager('key', AIModel.CLAUDE_3_HAIKU)
+            const manager = new ConversationManager(() => 'key', AIModel.CLAUDE_3_HAIKU)
             expect(manager.endConversation()).toBeNull()
         })
     })
 
     describe('getCurrentConversation', () => {
         test('should return null when no conversation started', () => {
-            const manager = new ConversationManager('key', AIModel.CLAUDE_3_HAIKU)
+            const manager = new ConversationManager(() => 'key', AIModel.CLAUDE_3_HAIKU)
             expect(manager.getCurrentConversation()).toBeNull()
         })
 
         test('should return current conversation state', () => {
-            const manager = new ConversationManager('key', AIModel.CLAUDE_3_HAIKU)
+            const manager = new ConversationManager(() => 'key', AIModel.CLAUDE_3_HAIKU)
             manager.startConversation('Test', 'path', 'content')
 
             const conversation = manager.getCurrentConversation()
@@ -142,7 +146,7 @@ describe('ConversationManager', () => {
 
     describe('sendMessage', () => {
         test('should return error message when AI not configured', async () => {
-            const manager = new ConversationManager('', AIModel.CLAUDE_3_HAIKU)
+            const manager = new ConversationManager(() => '', AIModel.CLAUDE_3_HAIKU)
             manager.startConversation('Test', 'path', 'content')
 
             const result = await manager.sendMessage('Hello')
@@ -150,14 +154,14 @@ describe('ConversationManager', () => {
         })
 
         test('should return error message when no active conversation', async () => {
-            const manager = new ConversationManager('key', AIModel.CLAUDE_3_HAIKU)
+            const manager = new ConversationManager(() => 'key', AIModel.CLAUDE_3_HAIKU)
 
             const result = await manager.sendMessage('Hello')
             expect(result).toContain('No active conversation')
         })
 
         test('should add user message to conversation', async () => {
-            const manager = new ConversationManager('key', AIModel.CLAUDE_3_HAIKU)
+            const manager = new ConversationManager(() => 'key', AIModel.CLAUDE_3_HAIKU)
             manager.startConversation('Test', 'path', 'content')
 
             await manager.sendMessage('Hello there')
@@ -169,7 +173,7 @@ describe('ConversationManager', () => {
         })
 
         test('should call Anthropic API with correct parameters', async () => {
-            const manager = new ConversationManager('key', AIModel.CLAUDE_3_5_SONNET)
+            const manager = new ConversationManager(() => 'key', AIModel.CLAUDE_3_5_SONNET)
             manager.startConversation('TestNPC', 'path', 'content')
 
             await manager.sendMessage('Test message')
@@ -183,7 +187,7 @@ describe('ConversationManager', () => {
         })
 
         test('should add assistant response to conversation', async () => {
-            const manager = new ConversationManager('key', AIModel.CLAUDE_3_HAIKU)
+            const manager = new ConversationManager(() => 'key', AIModel.CLAUDE_3_HAIKU)
             manager.startConversation('Test', 'path', 'content')
 
             await manager.sendMessage('Hello')
@@ -199,7 +203,7 @@ describe('ConversationManager', () => {
                 })
             )
 
-            const manager = new ConversationManager('key', AIModel.CLAUDE_3_HAIKU)
+            const manager = new ConversationManager(() => 'key', AIModel.CLAUDE_3_HAIKU)
             manager.startConversation('Test', 'path', 'content')
 
             const result = await manager.sendMessage('Hello')
@@ -207,7 +211,7 @@ describe('ConversationManager', () => {
         })
 
         test('should update lastMessageAt timestamp', async () => {
-            const manager = new ConversationManager('key', AIModel.CLAUDE_3_HAIKU)
+            const manager = new ConversationManager(() => 'key', AIModel.CLAUDE_3_HAIKU)
             manager.startConversation('Test', 'path', 'content')
 
             await manager.sendMessage('Hello')
@@ -221,7 +225,7 @@ describe('ConversationManager', () => {
                 Promise.reject(new MockAnthropicAPIError('Unauthorized', 401))
             )
 
-            const manager = new ConversationManager('invalid-key', AIModel.CLAUDE_3_HAIKU)
+            const manager = new ConversationManager(() => 'invalid-key', AIModel.CLAUDE_3_HAIKU)
             manager.startConversation('Test', 'path', 'content')
 
             const result = await manager.sendMessage('Hello')
@@ -233,7 +237,7 @@ describe('ConversationManager', () => {
                 Promise.reject(new MockAnthropicAPIError('Rate limited', 429))
             )
 
-            const manager = new ConversationManager('key', AIModel.CLAUDE_3_HAIKU)
+            const manager = new ConversationManager(() => 'key', AIModel.CLAUDE_3_HAIKU)
             manager.startConversation('Test', 'path', 'content')
 
             const result = await manager.sendMessage('Hello')
@@ -245,7 +249,7 @@ describe('ConversationManager', () => {
                 Promise.reject(new MockAnthropicAPIError('Server error', 500))
             )
 
-            const manager = new ConversationManager('key', AIModel.CLAUDE_3_HAIKU)
+            const manager = new ConversationManager(() => 'key', AIModel.CLAUDE_3_HAIKU)
             manager.startConversation('Test', 'path', 'content')
 
             const result = await manager.sendMessage('Hello')
@@ -255,7 +259,7 @@ describe('ConversationManager', () => {
         test('should handle unknown errors', async () => {
             mockMessagesCreate.mockImplementation(() => Promise.reject(new Error('Unknown error')))
 
-            const manager = new ConversationManager('key', AIModel.CLAUDE_3_HAIKU)
+            const manager = new ConversationManager(() => 'key', AIModel.CLAUDE_3_HAIKU)
             manager.startConversation('Test', 'path', 'content')
 
             const result = await manager.sendMessage('Hello')
@@ -265,12 +269,12 @@ describe('ConversationManager', () => {
 
     describe('getMessages', () => {
         test('should return empty array when no conversation', () => {
-            const manager = new ConversationManager('key', AIModel.CLAUDE_3_HAIKU)
+            const manager = new ConversationManager(() => 'key', AIModel.CLAUDE_3_HAIKU)
             expect(manager.getMessages()).toEqual([])
         })
 
         test('should return conversation messages', async () => {
-            const manager = new ConversationManager('key', AIModel.CLAUDE_3_HAIKU)
+            const manager = new ConversationManager(() => 'key', AIModel.CLAUDE_3_HAIKU)
             manager.startConversation('Test', 'path', 'content')
             await manager.sendMessage('Hello')
 
@@ -281,7 +285,7 @@ describe('ConversationManager', () => {
 
     describe('setModel', () => {
         test('should update the model', async () => {
-            const manager = new ConversationManager('key', AIModel.CLAUDE_3_HAIKU)
+            const manager = new ConversationManager(() => 'key', AIModel.CLAUDE_3_HAIKU)
             manager.setModel(AIModel.CLAUDE_3_5_SONNET)
             manager.startConversation('Test', 'path', 'content')
 
@@ -295,30 +299,47 @@ describe('ConversationManager', () => {
         })
     })
 
-    describe('setApiKey', () => {
-        test('should enable AI when valid key provided', () => {
-            const manager = new ConversationManager('', AIModel.CLAUDE_3_HAIKU)
+    describe('API key read at use time', () => {
+        test('should pick up a key set after construction', async () => {
+            let key = ''
+            const manager = new ConversationManager(() => key, AIModel.CLAUDE_3_HAIKU)
             expect(manager.isConfigured()).toBe(false)
 
-            manager.setApiKey('new-key')
+            key = 'new-key'
             expect(manager.isConfigured()).toBe(true)
-        })
-
-        test('should disable AI when empty key provided', () => {
-            const manager = new ConversationManager('key', AIModel.CLAUDE_3_HAIKU)
-            expect(manager.isConfigured()).toBe(true)
-
-            manager.setApiKey('')
-            expect(manager.isConfigured()).toBe(false)
-        })
-
-        test('should create new client with new key', () => {
-            const manager = new ConversationManager('old-key', AIModel.CLAUDE_3_HAIKU)
-            MockAnthropic.mockClear()
-
-            manager.setApiKey('new-key')
-
+            manager.startConversation('Villager', 'note.md', 'content')
+            await manager.sendMessage('Hello')
             expect(MockAnthropic).toHaveBeenCalledWith({
+                apiKey: 'new-key',
+                dangerouslyAllowBrowser: true
+            })
+        })
+
+        test('should stop using AI when the key is removed', async () => {
+            let key = 'key'
+            const manager = new ConversationManager(() => key, AIModel.CLAUDE_3_HAIKU)
+            expect(manager.isConfigured()).toBe(true)
+
+            key = ''
+            expect(manager.isConfigured()).toBe(false)
+            manager.startConversation('Villager', 'note.md', 'content')
+            const response = await manager.sendMessage('Hello')
+            expect(response).toContain('not configured')
+            expect(mockMessagesCreate).not.toHaveBeenCalled()
+        })
+
+        test('should rebuild the client only when the key changes', async () => {
+            let key = 'old-key'
+            const manager = new ConversationManager(() => key, AIModel.CLAUDE_3_HAIKU)
+            manager.startConversation('Villager', 'note.md', 'content')
+            await manager.sendMessage('one')
+            await manager.sendMessage('two')
+            expect(MockAnthropic).toHaveBeenCalledTimes(1)
+
+            key = 'new-key'
+            await manager.sendMessage('three')
+            expect(MockAnthropic).toHaveBeenCalledTimes(2)
+            expect(MockAnthropic).toHaveBeenLastCalledWith({
                 apiKey: 'new-key',
                 dangerouslyAllowBrowser: true
             })

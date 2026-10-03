@@ -27,4 +27,6 @@ When a new business rule is mentioned:
 
 **Single serialized write path**: Every settings mutation goes through `NoteVillagePlugin.updateSettings(mutator)` — persist-then-commit (memory is swapped only after `saveData()` succeeds, so a rejected write rolls the control back to the on-disk truth) and serialized (each mutation derives from the previously COMMITTED state, so overlapping writes cannot drop each other). Side effects run strictly after a successful commit: the debug-logging flag tracks the committed `debugMode`, and village-shape writes (`villageSeed`, `topTagCount`, `maxVillagers`, exclusion-list edits) trigger `regenerateVillage()` post-commit.
 
+**API key in SecretStorage**: The Anthropic API key lives only in Obsidian SecretStorage; settings store the secret NAME. New key values are never written to data.json. The legacy plaintext `anthropicApiKey` is a read-only per-device bootstrap (copied into each device's SecretStorage when absent there) so every synced device keeps working with zero action; it is removed on rotate/clear, 60 days after the first migration, or via the settings button.
+
 **setControlValue rejects invalid writes**: Type-mismatched values, dropdown values outside the declared enum options, and unknown keys throw — resolving would tell the framework the write landed and leave the pane showing a value that was never stored.

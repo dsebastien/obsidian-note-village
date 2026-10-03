@@ -61,7 +61,7 @@ Open **Settings** > **Note Village** to configure:
 | Excluded folders    | Folders to exclude from analysis                        |
 | Excluded tags       | Tags to exclude from zone generation                    |
 | Render quality      | Graphics quality (Low, Medium, High)                    |
-| Anthropic API key   | Required for AI conversations                           |
+| Anthropic API key   | Secret (Obsidian secret storage) for AI conversations   |
 | AI model            | Claude model for conversations                          |
 | Save conversations  | Save chat history to vault                              |
 | Conversation folder | Folder for saved conversations                          |
@@ -86,7 +86,7 @@ Open **Settings** > **Note Village** to configure:
 
 To chat with your notes:
 
-1. Add your Anthropic API key in settings
+1. Select or create the secret holding your Anthropic API key in settings (stored in Obsidian's secret storage, not in the plugin settings file)
 2. Approach a villager and press C (or right-click)
 3. The villager will respond based on the note's content
 

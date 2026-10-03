@@ -1,4 +1,4 @@
-import { Notice, PluginSettingTab } from 'obsidian'
+import { Notice, PluginSettingTab, SecretComponent } from 'obsidian'
 import type { App, SearchComponent, SettingDefinitionItem } from 'obsidian'
 import type { NoteVillagePlugin } from '../plugin'
 import type { PluginSettings } from '#types/plugin-settings.intf'
@@ -8,11 +8,12 @@ import { FolderSuggester } from '../../ui/folder-suggester'
 import { TagSuggester } from '../../ui/tag-suggester'
 import { BUY_ME_A_COFFEE_BADGE_DATA_URL } from '../assets/buy-me-a-coffee'
 import { renderSupportSection } from '../ui/support-links'
+import { isApiKeySecretMissing } from '../services/api-key-secret'
 
 /**
  * The settings keys owned by plain declarative controls, i.e. everything the
- * `getControlValue`/`setControlValue` pair addresses. The API key and the two
- * exclusion lists go through their own render/list definitions instead.
+ * `getControlValue`/`setControlValue` pair addresses. The API key secret and
+ * the two exclusion lists go through their own render/list definitions instead.
  */
 type ControlKey =
     | 'villageSeed'
@@ -156,34 +157,63 @@ export class NoteVillageSettingTab extends PluginSettingTab {
                 items: [
                     {
                         name: 'Anthropic API key',
-                        desc: 'Your Anthropic API key for AI-powered conversations',
-                        // A render row rather than a text control: the input is
-                        // masked (type=password), which the declarative text
-                        // control cannot express. Keystroke writes go through
-                        // the serialized write path and never re-sync the
-                        // input — not on success (a re-sync would clobber text
-                        // typed ahead of the queued save) and not on failure
-                        // either: every write carries the WHOLE displayed
-                        // value, so leaving the typed text means the next
-                        // keystroke re-persists exactly what the user sees,
-                        // while a failure re-sync could roll the input back
-                        // underneath newer queued writes and make the display
-                        // diverge from what later persists.
+                        desc: 'Secret holding your Anthropic API key for AI-powered conversations. The key lives in secret storage on each device, not in the plugin settings file.',
+                        // A render row: the declarative controls have no secret
+                        // picker. SecretComponent hands back the secret NAME;
+                        // only that name is persisted.
                         render: (setting): void => {
-                            setting.addText((text) => {
-                                text.inputEl.type = 'password'
-                                text.setPlaceholder('sk-ant-...')
-                                    .setValue(this.plugin.settings.anthropicApiKey)
+                            const secretName = this.plugin.settings.anthropicApiKeySecretName
+                            if (
+                                isApiKeySecretMissing(this.plugin.settings, this.app.secretStorage)
+                            ) {
+                                setting.setDesc(
+                                    `No secret named "${secretName}" exists on this device. Secrets are stored per device: select or create it here to enable AI conversations.`
+                                )
+                            }
+                            setting.addComponent((el) =>
+                                new SecretComponent(this.app, el)
+                                    .setValue(secretName)
                                     .onChange((value) => {
-                                        this.plugin
-                                            .updateSettings((draft) => {
-                                                draft.anthropicApiKey = value
-                                            })
+                                        this.setApiKeySecretName(value)
+                                            .then(() => this.update())
                                             .catch(() => {
                                                 new Notice('Failed to save settings.')
                                             })
                                     })
-                            })
+                            )
+                        }
+                    },
+                    {
+                        name: 'Clear API key',
+                        desc: 'Remove the API key from this device and delete the plain-text copy from the settings file.',
+                        render: (setting): void => {
+                            setting.addButton((button) =>
+                                button.setButtonText('Clear').onClick(() => {
+                                    this.plugin
+                                        .clearAnthropicApiKey()
+                                        .then(() => this.update())
+                                        .catch(() => {
+                                            new Notice('Failed to save settings.')
+                                        })
+                                })
+                            )
+                        }
+                    },
+                    {
+                        name: 'Remove plain-text copy now',
+                        desc: 'Earlier versions stored the API key in plain text in the settings file. That copy lets each synced device move the key into its own secret storage, and is removed automatically 60 days after the first migration. Remove it now once all your devices run this version.',
+                        visible: (): boolean => this.plugin.settings.anthropicApiKey !== undefined,
+                        render: (setting): void => {
+                            setting.addButton((button) =>
+                                button.setButtonText('Remove').onClick(() => {
+                                    this.plugin
+                                        .removeLegacyApiKeyCopy()
+                                        .then(() => this.update())
+                                        .catch(() => {
+                                            new Notice('Failed to save settings.')
+                                        })
+                                })
+                            )
                         }
                     },
                     {
@@ -262,6 +292,21 @@ export class NoteVillageSettingTab extends PluginSettingTab {
                 ]
             }
         ]
+    }
+
+    /**
+     * Records which secret holds the Anthropic API key. Only the NAME is
+     * persisted; the value stays in SecretStorage. Picking or creating a
+     * secret supersedes the legacy plaintext copy, which is removed as stale.
+     */
+    async setApiKeySecretName(value: unknown): Promise<void> {
+        if (typeof value !== 'string') {
+            throw new Error('Setting "anthropicApiKeySecretName" expects a string.')
+        }
+        await this.plugin.updateSettings((draft) => {
+            draft.anthropicApiKeySecretName = value
+            delete draft.anthropicApiKey
+        })
     }
 
     /**

@@ -10,25 +10,48 @@ import type { ConversationState } from '#types/conversation-state.intf'
  */
 export class ConversationManager {
     private client: Anthropic | null = null
+    /** The key `client` was built with, so a changed key rebuilds it. */
+    private clientApiKey = ''
     private currentConversation: ConversationState | null = null
     private model: AIModel
 
-    constructor(apiKey: string, model: AIModel) {
+    /**
+     * @param getApiKey Reads the API key at use time (from SecretStorage), so
+     * a key set, changed or removed in settings applies to the next message.
+     */
+    constructor(
+        private readonly getApiKey: () => string,
+        model: AIModel
+    ) {
         this.model = model
+    }
 
-        if (apiKey) {
+    /**
+     * Check if an API key is available
+     */
+    isConfigured(): boolean {
+        return this.getApiKey() !== ''
+    }
+
+    /**
+     * The client for the current API key, rebuilt when the key changes and
+     * null when there is none.
+     */
+    private resolveClient(): Anthropic | null {
+        const apiKey = this.getApiKey()
+        if (apiKey === '') {
+            this.client = null
+            this.clientApiKey = ''
+            return null
+        }
+        if (!this.client || this.clientApiKey !== apiKey) {
             this.client = new Anthropic({
                 apiKey,
                 dangerouslyAllowBrowser: true // Required for browser environment
             })
+            this.clientApiKey = apiKey
         }
-    }
-
-    /**
-     * Check if the manager is configured with an API key
-     */
-    isConfigured(): boolean {
-        return this.client !== null
+        return this.client
     }
 
     /**
@@ -65,8 +88,9 @@ export class ConversationManager {
      * Send a message and get a response
      */
     async sendMessage(userMessage: string): Promise<string> {
-        if (!this.client) {
-            return 'AI is not configured. Please add your Anthropic API key in settings.'
+        const client = this.resolveClient()
+        if (!client) {
+            return 'AI is not configured. Set your Anthropic API key in the plugin settings (secrets are stored per device).'
         }
 
         if (!this.currentConversation) {
@@ -94,7 +118,7 @@ export class ConversationManager {
 
             log('Sending to Claude', 'debug', { messageCount: messages.length })
 
-            const response = await this.client.messages.create({
+            const response = await client.messages.create({
                 model: this.model,
                 max_tokens: 300,
                 system: systemPrompt,
@@ -145,19 +169,5 @@ export class ConversationManager {
      */
     setModel(model: AIModel): void {
         this.model = model
-    }
-
-    /**
-     * Update the API key
-     */
-    setApiKey(apiKey: string): void {
-        if (apiKey) {
-            this.client = new Anthropic({
-                apiKey,
-                dangerouslyAllowBrowser: true
-            })
-        } else {
-            this.client = null
-        }
     }
 }
