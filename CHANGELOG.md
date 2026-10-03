@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.0](https://github.com/dsebastien/obsidian-note-village/compare/2.1.1...2.2.0) (2026-10-03)
+
+### Your Anthropic API key is now kept in Obsidian's secret storage
+
+The API key is no longer stored in plain text in the plugin's settings file (`data.json`), so it no longer travels with your vault through Git, Syncthing or cloud sync. Only the name of the secret is saved in the settings.
+
+- **No action needed.** Every device moves your existing key into its own secret storage automatically the next time it starts this version. AI conversations keep working on all your synced devices.
+- For a transition period, the plain-text copy stays in the settings file so devices that have not updated yet can still pick up the key. It is removed automatically 60 days after the first migration. To remove it sooner, select **Remove plain-text copy now** in **Settings → Note Village** once all your devices run this version.
+- To change the key, select or create a different secret under **Anthropic API key**. **Clear API key** removes the key from this device.
+
 ## [2.1.1](https://github.com/dsebastien/obsidian-note-village/compare/2.1.0...2.1.1) (2026-09-28)
 
 ### Bug Fixes
@@ -150,6 +160,7 @@ commit is now satisfied.
 * **all:** moved forest to become the borders of the world ([7d73a5d](https://github.com/dsebastien/obsidian-note-village/commit/7d73a5d7ddbe13d33586b0b4b88ee7e5e957b447))
 * **all:** switch to classic tiles ([f34ede3](https://github.com/dsebastien/obsidian-note-village/commit/f34ede3eb747d2eb510e500d4ae4c464d26dda96))
 * **all:** villagers stop moving while discussing ([8ec4b49](https://github.com/dsebastien/obsidian-note-village/commit/8ec4b49f51e93ef243734846f83a4472a61e880f))
+
 
 
 
